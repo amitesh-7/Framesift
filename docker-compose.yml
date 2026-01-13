@@ -1,0 +1,61 @@
+# FrameSift - Semantic Video Search Engine
+# Docker Compose Configuration
+
+services:
+  # FastAPI Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: framesift-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_INDEX_NAME=${PINECONE_INDEX_NAME:-framesift}
+      - NVIDIA_KEYS=${NVIDIA_KEYS:-[]}
+    volumes:
+      - ./backend:/app:ro # Read-only mount for development
+      - framesift-temp:/tmp # Temporary storage for video processing
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import requests; requests.get('http://localhost:8000/')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - framesift-network
+
+  # Next.js Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: framesift-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - framesift-network
+
+# Shared network for service communication
+networks:
+  framesift-network:
+    driver: bridge
+
+# Named volumes
+volumes:
+  framesift-temp:
+    driver: local
