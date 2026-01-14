@@ -176,8 +176,9 @@ export function Hero() {
 
   // Create raining characters
   const createCharacters = useCallback(() => {
-    const allChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    const charCount = 150;
+    const allChars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+    const charCount = 300;
     const newCharacters: Character[] = [];
 
     for (let i = 0; i < charCount; i++) {
@@ -185,7 +186,7 @@ export function Hero() {
         char: allChars[Math.floor(Math.random() * allChars.length)],
         x: Math.random() * 100,
         y: Math.random() * 100,
-        speed: 0.05 + Math.random() * 0.15,
+        speed: 0.1 + Math.random() * 0.3,
       });
     }
     return newCharacters;
@@ -199,14 +200,14 @@ export function Hero() {
   useEffect(() => {
     const updateActiveIndices = () => {
       const newActiveIndices = new Set<number>();
-      const numActive = Math.floor(Math.random() * 4) + 2;
+      const numActive = Math.floor(Math.random() * 3) + 3;
       for (let i = 0; i < numActive; i++) {
         newActiveIndices.add(Math.floor(Math.random() * characters.length));
       }
       setActiveIndices(newActiveIndices);
     };
 
-    const flickerInterval = setInterval(updateActiveIndices, 80);
+    const flickerInterval = setInterval(updateActiveIndices, 50);
     return () => clearInterval(flickerInterval);
   }, [characters.length]);
 
@@ -222,8 +223,12 @@ export function Hero() {
           ...(char.y >= 100 && {
             y: -5,
             x: Math.random() * 100,
-            char: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[
-              Math.floor(Math.random() * 36)
+            char: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"[
+              Math.floor(
+                Math.random() *
+                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?"
+                    .length
+              )
             ],
           }),
         }))
@@ -237,33 +242,37 @@ export function Hero() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
-      {/* Raining Characters Background */}
-      {characters.map((char, index) => (
-        <span
-          key={index}
-          className={`absolute transition-colors duration-75 select-none ${
-            activeIndices.has(index)
-              ? "text-violet-400 font-bold z-10"
-              : "text-zinc-800 font-light"
-          }`}
-          style={{
-            left: `${char.x}%`,
-            top: `${char.y}%`,
-            transform: "translate(-50%, -50%)",
-            textShadow: activeIndices.has(index)
-              ? "0 0 10px rgba(139, 92, 246, 0.8), 0 0 20px rgba(139, 92, 246, 0.4)"
-              : "none",
-            opacity: activeIndices.has(index) ? 1 : 0.3,
-            fontSize: activeIndices.has(index) ? "1.5rem" : "1.2rem",
-            willChange: "transform, top",
-          }}
-        >
-          {char.char}
-        </span>
-      ))}
+      {/* Raining Characters Background - with higher z-index to show in front */}
+      <div className="absolute inset-0 z-10">
+        {characters.map((char, index) => (
+          <span
+            key={index}
+            className={`absolute transition-colors duration-100 select-none pointer-events-none ${
+              activeIndices.has(index)
+                ? "text-green-500 font-bold scale-125 animate-pulse"
+                : "text-slate-700 font-light"
+            }`}
+            style={{
+              left: `${char.x}%`,
+              top: `${char.y}%`,
+              transform: `translate(-50%, -50%) ${
+                activeIndices.has(index) ? "scale(1.25)" : "scale(1)"
+              }`,
+              textShadow: activeIndices.has(index)
+                ? "0 0 8px rgba(34, 197, 94, 0.8), 0 0 12px rgba(34, 197, 94, 0.4)"
+                : "none",
+              opacity: activeIndices.has(index) ? 1 : 0.4,
+              fontSize: "1.8rem",
+              willChange: "transform, top",
+            }}
+          >
+            {char.char}
+          </span>
+        ))}
+      </div>
 
       {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 pointer-events-none z-[5]" />
 
       {/* Content */}
       <div className="relative z-20 max-w-4xl mx-auto px-4 py-20 text-center">
