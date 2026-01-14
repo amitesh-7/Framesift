@@ -73,7 +73,7 @@ export function BackgroundPathsWrapper({
 }
 
 // Original BackgroundPaths hero component (kept for compatibility)
-export function BackgroundPaths({ children }: { children?: React.ReactNode }) {
+export function BackgroundPaths() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       <FloatingPaths position={1} />
