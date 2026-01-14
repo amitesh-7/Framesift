@@ -34,3 +34,6 @@ frontend/yarn-error.log*
 
 # OS
 .OSX
+
+.env.production
+.env.local
