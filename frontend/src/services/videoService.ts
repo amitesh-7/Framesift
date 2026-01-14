@@ -12,6 +12,20 @@ export interface SearchResponse {
   query: string;
 }
 
+export interface DeepScanRequest {
+  video_id: string;
+  start_time: number;
+  end_time: number;
+  fps?: number;
+}
+
+export interface DeepScanResponse {
+  status: string;
+  message: string;
+  frames_processed: number;
+  frames_indexed: number;
+}
+
 export const videoService = {
   search: async (
     query: string,
@@ -47,6 +61,16 @@ export const videoService = {
 
   getVideos: async (): Promise<{ videos: string[] }> => {
     const { data } = await api.get("/videos");
+    return data;
+  },
+
+  deepScan: async (request: DeepScanRequest): Promise<DeepScanResponse> => {
+    const { data } = await api.post("/deep-scan", {
+      video_id: request.video_id,
+      start_time: request.start_time,
+      end_time: request.end_time,
+      fps: request.fps || 1,
+    });
     return data;
   },
 };

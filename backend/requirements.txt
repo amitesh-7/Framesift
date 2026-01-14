@@ -11,3 +11,7 @@ numpy<2.0.0
 Pillow>=10.2.0
 pymongo>=4.6.0
 redis>=5.0.0
+# Phase 2: Advanced Filtering Dependencies
+moviepy>=1.0.3
+librosa>=0.10.0
+scipy>=1.11.0

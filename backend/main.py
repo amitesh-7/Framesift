@@ -1,6 +1,12 @@
 """
 FrameSift Backend - Semantic Video Search Engine
 Hybrid AI Architecture: Local Scout (CPU) + Cloud Intelligence (NVIDIA NIM)
+
+Phase 2: Advanced Filtering
+- Audio Trigger ("Clack" Detector)
+- Physics Filter (Vertical Optical Flow)
+- Robust Parallel Processing with Key Rotation
+- Deep Scan Mode
 """
 
 import os
@@ -16,6 +22,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime
 
+# Suppress transformers warnings
+os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+import warnings
+import logging
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=UserWarning)
+# Suppress transformers logging
+logging.getLogger("transformers").setLevel(logging.ERROR)
+
 import cv2
 import numpy as np
 import requests
@@ -29,6 +45,10 @@ from pinecone import Pinecone, ServerlessSpec
 from dotenv import load_dotenv
 from pymongo import MongoClient
 import redis
+
+# Phase 2 imports
+from scout import AudioTrigger, PhysicsFilter, PriorityQueueManager, FramePriority
+from processor import ParallelFrameProcessor, DeepScanProcessor, create_parallel_processor
 
 # Load environment variables from .env.local (development) or .env (production)
 load_dotenv(".env.local")
@@ -144,6 +164,14 @@ class UserLogin(BaseModel):
     email: str
     picture: str
 
+
+class DeepScanRequest(BaseModel):
+    """Request body for deep scan endpoint."""
+    video_id: str
+    start_time: float
+    end_time: float
+    fps: float = 1.0  # Frames per second to analyze
+
 # ============================================================================
 # In-Memory Job Storage (Use Redis in production)
 # ============================================================================
@@ -198,14 +226,22 @@ def get_all_users_from_db() -> List[Dict[str, Any]]:
         return []
 
 # ============================================================================
-# SemanticScout - Local CPU-based Frame Filtering
+# SemanticScout - Local CPU-based Frame Filtering (Phase 2 Enhanced)
 # ============================================================================
 
 class SemanticScout:
     """
     Local "Scout" that filters video frames using:
-    1. Optical Flow (Physics) - Detects motion between frames
-    2. CLIP Embeddings (Meaning) - Removes semantically redundant frames
+    1. Audio Trigger - Detects sound spikes (CRITICAL priority)
+    2. Physics Filter - Vertical optical flow (falling vs walking)
+    3. Optical Flow (Physics) - Detects motion between frames
+    4. CLIP Embeddings (Meaning) - Removes semantically redundant frames
+    
+    Phase 2 Priority Queue:
+    - CRITICAL (Audio Spikes) -> Bypass all filters, send immediately
+    - HIGH (Falling/Vertical) -> Send to NVIDIA
+    - MEDIUM (General Motion) -> Send to NVIDIA
+    - LOW/DISCARD (Static/Walking) -> Skip
     """
     
     def __init__(self):
@@ -213,6 +249,19 @@ class SemanticScout:
         self.clip_model = SentenceTransformer('clip-ViT-B-32')
         print("✅ CLIP model loaded successfully!")
         self.last_embedding = None
+        
+        # Phase 2: Initialize advanced filters
+        self.audio_trigger = AudioTrigger(
+            rms_threshold=0.05,
+            spike_multiplier=2.5,
+            chunk_duration=1.0
+        )
+        self.physics_filter = PhysicsFilter(
+            vertical_threshold=5.0,
+            horizontal_threshold=3.0,
+            cluster_min_pixels=500
+        )
+        self.priority_manager = PriorityQueueManager()
     
     def _compute_motion_score(self, frame1: np.ndarray, frame2: np.ndarray) -> float:
         """Compute motion score between two frames using pixel difference."""
@@ -251,11 +300,29 @@ class SemanticScout:
         """
         Process video and extract semantically unique frames.
         
+        Phase 2 Enhancement: Runs audio analysis first, then combines with
+        physics and CLIP filters using priority queue.
+        
         Returns:
             List of dicts with 'frame', 'timestamp', 'embedding' for surviving frames
         """
         print(f"🎬 Processing video: {video_path}")
         
+        # =====================================================================
+        # Phase 2: Audio Analysis (Run FIRST)
+        # =====================================================================
+        print("\n📢 Phase 2: Running audio spike detection...")
+        critical_timestamps = self.audio_trigger.get_critical_timestamps(video_path)
+        self.priority_manager.set_audio_critical_timestamps(critical_timestamps)
+        
+        if critical_timestamps:
+            print(f"  🔊 Found {len(critical_timestamps)} audio-critical timestamps")
+        else:
+            print("  ℹ️ No audio spikes detected")
+        
+        # =====================================================================
+        # Video Processing
+        # =====================================================================
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise ValueError(f"Cannot open video: {video_path}")
@@ -267,6 +334,11 @@ class SemanticScout:
         prev_frame = None
         frame_count = 0
         processed_count = 0
+        
+        # Stats for Phase 2
+        audio_bypassed = 0
+        physics_passed = 0
+        clip_passed = 0
         
         # Update job status
         jobs_store[job_id].frames_total = total_frames // FRAME_SKIP_INTERVAL
@@ -289,30 +361,88 @@ class SemanticScout:
             
             # Update progress
             jobs_store[job_id].frames_processed = processed_count
-            jobs_store[job_id].progress = processed_count / jobs_store[job_id].frames_total
+            jobs_store[job_id].progress = processed_count / max(jobs_store[job_id].frames_total, 1)
             
-            # Logic Gate 1: Physics (Motion Detection)
+            # =====================================================================
+            # Phase 2: Check if timestamp is CRITICAL (audio spike)
+            # If critical, BYPASS all other filters
+            # =====================================================================
+            is_audio_critical = self.priority_manager.is_audio_critical(timestamp, tolerance=0.5)
+            
+            if is_audio_critical:
+                # BYPASS all filters - audio spike detected near this frame
+                embedding = self._get_clip_embedding(frame)
+                self.last_embedding = embedding
+                
+                surviving_frames.append({
+                    'frame': frame,
+                    'timestamp': timestamp,
+                    'embedding': embedding,
+                    'frame_id': f"{job_id}_frame_{len(surviving_frames)}",
+                    'priority': 'CRITICAL_AUDIO'
+                })
+                
+                audio_bypassed += 1
+                prev_frame = frame
+                print(f"  🔊 Frame at {timestamp:.2f}s BYPASSED (audio critical)")
+                continue
+            
+            # =====================================================================
+            # Logic Gate 1: Physics Filter (Phase 2)
+            # Check for vertical motion (falling) vs horizontal (walking)
+            # =====================================================================
+            if prev_frame is not None:
+                should_process, physics_result = self.physics_filter.should_process_frame(
+                    prev_frame, frame
+                )
+                
+                # Update priority manager
+                self.priority_manager.update_priority(timestamp, physics_result.priority)
+                
+                # Skip walking/static motion
+                if physics_result.priority == FramePriority.DISCARD:
+                    prev_frame = frame
+                    continue
+                
+                if physics_result.priority == FramePriority.LOW:
+                    # Low priority but not discard - apply stricter threshold
+                    motion_score = self._compute_motion_score(prev_frame, frame)
+                    if motion_score < MOTION_THRESHOLD * 1.5:  # Stricter threshold
+                        prev_frame = frame
+                        continue
+                
+                # High priority (falling) passes immediately
+                if physics_result.priority == FramePriority.HIGH:
+                    physics_passed += 1
+            
+            # =====================================================================
+            # Logic Gate 2: Classic Motion Detection (Fallback)
+            # =====================================================================
             if prev_frame is not None:
                 motion_score = self._compute_motion_score(prev_frame, frame)
                 if motion_score < MOTION_THRESHOLD:
                     prev_frame = frame
-                    continue  # Skip - no significant motion
+                    continue
             
-            # Logic Gate 2: Meaning (CLIP Similarity)
+            # =====================================================================
+            # Logic Gate 3: CLIP Similarity (Semantic Redundancy)
+            # =====================================================================
             embedding = self._get_clip_embedding(frame)
             
             if not self._is_semantically_unique(embedding):
                 prev_frame = frame
-                continue  # Skip - semantically redundant
+                continue
             
-            # Frame survived both gates!
+            # Frame survived all gates!
             self.last_embedding = embedding
+            clip_passed += 1
             
             surviving_frames.append({
                 'frame': frame,
                 'timestamp': timestamp,
                 'embedding': embedding,
-                'frame_id': f"{job_id}_frame_{len(surviving_frames)}"
+                'frame_id': f"{job_id}_frame_{len(surviving_frames)}",
+                'priority': 'STANDARD'
             })
             
             prev_frame = frame
@@ -320,7 +450,11 @@ class SemanticScout:
         
         cap.release()
         
-        print(f"📊 Filtering complete: {len(surviving_frames)}/{total_frames} frames survived")
+        print(f"\n📊 Filtering complete: {len(surviving_frames)}/{total_frames} frames survived")
+        print(f"   🔊 Audio bypassed: {audio_bypassed}")
+        print(f"   📐 Physics (vertical): {physics_passed}")
+        print(f"   🎯 CLIP passed: {clip_passed}")
+        
         return surviving_frames
 
 # ============================================================================
@@ -913,7 +1047,7 @@ async def get_all_users(x_admin_key: Optional[str] = Header(None)):
 
 @app.post("/clear-database")
 async def clear_database():
-    """Clear all vectors from Pinecone database and delete all video files on user logout."""
+    """Clear all vectors from Pinecone database and delete all video/audio files on user logout."""
     try:
         # Clear Pinecone vectors
         vector_success = vector_store.clear_all()
@@ -932,17 +1066,35 @@ async def clear_database():
                 except Exception as e:
                     print(f"⚠️ Failed to delete {filename}: {e}")
         
-        print(f"🗑️ Cleared {videos_deleted} video file(s) on logout")
+        # Delete all temporary audio files
+        temp_dir = tempfile.gettempdir()
+        audio_deleted = 0
+        
+        try:
+            for filename in os.listdir(temp_dir):
+                if filename.endswith('.wav'):
+                    file_path = os.path.join(temp_dir, filename)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                            audio_deleted += 1
+                    except Exception as e:
+                        # Ignore files in use or permission errors
+                        pass
+        except Exception as e:
+            print(f"⚠️ Failed to clean temp audio files: {e}")
+        
+        print(f"🗑️ Cleared {videos_deleted} video file(s) and {audio_deleted} audio file(s) on logout")
         
         if vector_success:
             return {
                 "status": "success",
-                "message": f"Database and {videos_deleted} video(s) cleared successfully"
+                "message": f"Database, {videos_deleted} video(s), and {audio_deleted} audio file(s) cleared successfully"
             }
         else:
             return {
                 "status": "partial",
-                "message": f"{videos_deleted} video(s) deleted, but database not configured"
+                "message": f"{videos_deleted} video(s) and {audio_deleted} audio file(s) deleted, but database not configured"
             }
     except Exception as e:
         print(f"❌ Error clearing data: {e}")
@@ -954,6 +1106,107 @@ async def clear_database():
             "status": "error",
             "message": str(e)
         }
+
+# ============================================================================
+# Phase 2: Deep Scan Endpoint
+# ============================================================================
+
+@app.post("/deep-scan")
+async def deep_scan_video(request: DeepScanRequest):
+    """
+    Phase 2: Deep Scan Mode
+    
+    Force-process a specific time range of a video, bypassing all filters.
+    Useful when the AI missed important frames in a specific segment.
+    
+    Process:
+    1. Extract every frame in the time range at specified FPS
+    2. Analyze each frame with NVIDIA VILA (no filtering)
+    3. Generate embeddings and upsert to Pinecone
+    
+    Returns:
+        Success status and number of frames processed
+    """
+    video_id = request.video_id
+    start_time = request.start_time
+    end_time = request.end_time
+    fps = request.fps
+    
+    print(f"\n🔬 Deep Scan requested for video: {video_id}")
+    print(f"   Time range: {start_time:.2f}s - {end_time:.2f}s")
+    print(f"   FPS: {fps}")
+    
+    # Find the video file
+    videos_dir = os.path.join(os.getcwd(), "videos")
+    video_path = None
+    
+    for filename in os.listdir(videos_dir):
+        if video_id in filename:
+            video_path = os.path.join(videos_dir, filename)
+            break
+    
+    if not video_path or not os.path.exists(video_path):
+        raise HTTPException(status_code=404, detail=f"Video {video_id} not found")
+    
+    try:
+        # Initialize deep scan processor
+        deep_processor = DeepScanProcessor(
+            nvidia_keys=NVIDIA_KEYS,
+            vila_url=NVIDIA_VLM_URL,
+            embed_url=NVIDIA_EMBED_URL,
+            max_workers=len(NVIDIA_KEYS)
+        )
+        
+        # Run deep scan
+        results = deep_processor.deep_scan(
+            video_path=video_path,
+            start_time=start_time,
+            end_time=end_time,
+            fps=fps
+        )
+        
+        if not results:
+            return {
+                "status": "warning",
+                "message": "No frames processed in the specified range",
+                "frames_processed": 0
+            }
+        
+        # Upsert results to Pinecone
+        upsert_count = 0
+        for result in results:
+            if result.embedding:
+                metadata = {
+                    "video_id": video_id,
+                    "timestamp": result.timestamp,
+                    "description": result.description,
+                    "source": "deep_scan"
+                }
+                
+                # Generate unique frame ID for deep scan
+                frame_id = f"{video_id}_deepscan_{result.timestamp:.2f}".replace(".", "_")
+                
+                success = vector_store.upsert_frame(
+                    frame_id=frame_id,
+                    embedding=result.embedding,
+                    metadata=metadata
+                )
+                
+                if success:
+                    upsert_count += 1
+        
+        print(f"✅ Deep scan complete: {upsert_count}/{len(results)} frames indexed")
+        
+        return {
+            "status": "success",
+            "message": f"Deep scan processed {len(results)} frames, {upsert_count} indexed",
+            "frames_processed": len(results),
+            "frames_indexed": upsert_count
+        }
+        
+    except Exception as e:
+        print(f"❌ Deep scan failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Deep scan failed: {str(e)}")
 
 # ============================================================================
 # Startup Event

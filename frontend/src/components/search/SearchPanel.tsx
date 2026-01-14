@@ -7,10 +7,12 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  Zap,
 } from "lucide-react";
 import { Button, Input } from "@/components/ui";
 import { videoService, SearchResult } from "@/services";
 import { formatTime } from "@/lib/utils";
+import { DeepScanModal } from "./DeepScanModal";
 
 interface SearchPanelProps {
   videoId?: string;
@@ -24,9 +26,11 @@ export function SearchPanel({
   onUploadClick,
 }: SearchPanelProps) {
   const [query, setQuery] = useState("");
+  const [lastQuery, setLastQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deepScanOpen, setDeepScanOpen] = useState(false);
 
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
@@ -36,12 +40,21 @@ export function SearchPanel({
     setError(null);
 
     try {
-      const data = await videoService.search(query.trim(), videoId, 5);
+      const trimmedQuery = query.trim();
+      const data = await videoService.search(trimmedQuery, videoId, 5);
       setResults(data.results || []);
+      setLastQuery(trimmedQuery);
     } catch {
       setError("Search failed. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeepScanComplete = () => {
+    // Refresh search results after deep scan
+    if (lastQuery) {
+      handleSearch({ preventDefault: () => {} } as FormEvent);
     }
   };
 
@@ -96,11 +109,70 @@ export function SearchPanel({
           </div>
         )}
 
-        {!isLoading && !error && results.length === 0 && (
+        {!isLoading && !error && results.length === 0 && lastQuery && (
+          <div className="space-y-4">
+            <div className="text-center py-8">
+              <Search className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
+              <p className="text-sm text-zinc-400 mb-2">
+                No results found for "{lastQuery}"
+              </p>
+            </div>
+
+            {/* Deep Scan CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-lg border-2 border-dashed border-violet-500/30 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5"
+            >
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-white mb-1">
+                    Try Deep Scan Mode
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Not finding the moment? Deep Scan processes every frame in a
+                    specific segment, bypassing all filters for maximum
+                    accuracy.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => setDeepScanOpen(true)}
+                className="w-full bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white"
+                size="sm"
+              >
+                <Zap className="w-3.5 h-3.5 mr-1.5" />
+                Open Deep Scan
+              </Button>
+            </motion.div>
+          </div>
+        )}
+
+        {!isLoading && !error && results.length === 0 && !lastQuery && (
           <div className="text-center py-12">
             <Search className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-            <p className="text-sm text-zinc-500">
-              {query ? "No results found" : "Enter a search query"}
+            <p className="text-sm text-zinc-500">Enter a search query</p>
+          </div>
+        )}
+
+        {/* Deep Scan Modal */}
+        {videoId && (
+          <DeepScanModal
+            open={deepScanOpen}
+            onClose={() => setDeepScanOpen(false)}
+            videoId={videoId}
+            onComplete={handleDeepScanComplete}
+          />
+        )}
+        {!isLoading && !error && results.length > 0 && lastQuery && (
+          <div className="mb-4 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20">
+            <p className="text-xs text-zinc-400 mb-1">Search query:</p>
+            <p className="text-sm text-white font-medium">"{lastQuery}"</p>
+            <p className="text-xs text-zinc-500 mt-1">
+              {results.length} result{results.length !== 1 ? "s" : ""} found
             </p>
           </div>
         )}

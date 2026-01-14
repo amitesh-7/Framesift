@@ -3,11 +3,13 @@
 
 FROM python:3.11-slim as builder
 
-# Install build dependencies
+# Install build dependencies including ffmpeg for Phase 2 audio processing
 RUN apt-get update && apt-get install -y \
     build-essential \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    ffmpeg \
+    libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -30,10 +32,12 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 
 FROM python:3.11-slim
 
-# Install runtime dependencies only
+# Install runtime dependencies only (including ffmpeg for Phase 2 audio)
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    ffmpeg \
+    libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
@@ -48,8 +52,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy pre-downloaded models from builder
 COPY --from=builder /root/.cache /home/framesift/.cache
 
-# Copy application code
-COPY main.py .
+# Copy application code (Phase 2: Now includes scout.py and processor.py)
+COPY main.py scout.py processor.py ./
 
 # Set ownership
 RUN chown -R framesift:framesift /app /home/framesift/.cache
