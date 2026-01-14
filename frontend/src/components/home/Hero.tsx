@@ -275,101 +275,97 @@ export function Hero() {
       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 pointer-events-none z-[5]" />
 
       {/* Content */}
-      <div className="relative z-20 max-w-4xl mx-auto px-4 py-20 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="backdrop-blur-sm bg-black/30 rounded-3xl p-8 md:p-12 border border-white/10"
-        >
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300 text-sm mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-            Powered by NVIDIA NIM + Llama 3.2 Vision
-          </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="relative z-20 max-w-4xl mx-auto px-4 py-20 text-center"
+      >
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300 text-sm mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+          Powered by NVIDIA NIM + Llama 3.2 Vision
+        </div>
 
-          {/* Scrambled Title */}
-          <div className="mb-4">
-            <ScrambledTitle />
-          </div>
+        {/* Scrambled Title */}
+        <div className="mb-4">
+          <ScrambledTitle />
+        </div>
 
-          {/* Subtitle */}
-          <p className="text-lg md:text-xl bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent font-semibold mb-6">
-            AI-Powered Video Search
-          </p>
+        {/* Subtitle */}
+        <p className="text-lg md:text-xl bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent font-semibold mb-6">
+          AI-Powered Video Search
+        </p>
 
-          {/* Description */}
-          <p className="max-w-xl mx-auto text-zinc-400 mb-8">
-            Describe what you're looking for and jump directly to the exact
-            moment. Semantic search powered by multimodal AI.
-          </p>
+        {/* Description */}
+        <p className="max-w-xl mx-auto text-zinc-400 mb-8">
+          Describe what you're looking for and jump directly to the exact
+          moment. Semantic search powered by multimodal AI.
+        </p>
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-            {isAuthenticated ? (
-              <Link to="/search">
-                <Button size="lg" className="min-w-[200px]">
-                  <Search className="w-4 h-4 mr-2" />
-                  Start Searching
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
-            ) : (
-              <Button
-                size="lg"
-                onClick={() => googleLogin()}
-                className="min-w-[200px]"
-              >
-                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                Get Started with Google
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+          {isAuthenticated ? (
+            <Link to="/search">
+              <Button size="lg" className="min-w-[200px]">
+                <Search className="w-4 h-4 mr-2" />
+                Start Searching
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-            )}
-            <Link to="/search">
-              <Button variant="outline" size="lg" className="min-w-[200px]">
-                <Play className="w-4 h-4 mr-2" />
-                Explore Demo
-              </Button>
             </Link>
-          </div>
+          ) : (
+            <Button
+              size="lg"
+              onClick={() => googleLogin()}
+              className="min-w-[200px]"
+            >
+              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              Get Started with Google
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          )}
+          <Link to="/search">
+            <Button variant="outline" size="lg" className="min-w-[200px]">
+              <Play className="w-4 h-4 mr-2" />
+              Explore Demo
+            </Button>
+          </Link>
+        </div>
 
-          {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-8 pt-4 border-t border-white/10">
-            {[
-              {
-                value: config.features.embedDimensions,
-                label: "Embeddings",
-              },
-              { value: config.features.modelSize, label: "Vision Model" },
-              { value: config.features.searchLatency, label: "Latency" },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-2xl font-bold text-white">
-                  {stat.value}
-                </div>
-                <div className="text-xs text-zinc-500">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
+        {/* Stats */}
+        <div className="flex flex-wrap justify-center gap-8 pt-4">
+          {[
+            {
+              value: config.features.embedDimensions,
+              label: "Embeddings",
+            },
+            { value: config.features.modelSize, label: "Vision Model" },
+            { value: config.features.searchLatency, label: "Latency" },
+          ].map((stat) => (
+            <div key={stat.label} className="text-center">
+              <div className="text-2xl font-bold text-white">{stat.value}</div>
+              <div className="text-xs text-zinc-500">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
     </section>
   );
 }

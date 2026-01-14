@@ -34,9 +34,9 @@ function FloatingPaths({ position }: { position: number }) {
             x2="100%"
             y2="100%"
           >
-            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.15" />
-            <stop offset="50%" stopColor="#d946ef" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.15" />
+            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.4" />
+            <stop offset="50%" stopColor="#d946ef" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.4" />
           </linearGradient>
         </defs>
         {paths.map((path) => (
@@ -45,7 +45,7 @@ function FloatingPaths({ position }: { position: number }) {
             d={path.d}
             stroke={`url(#pathGradient-${position})`}
             strokeWidth={path.width}
-            strokeOpacity={0.05 + path.id * 0.01}
+            strokeOpacity={0.2 + path.id * 0.015}
             fill="none"
             initial={{ pathLength: 0.3 }}
             animate={{
