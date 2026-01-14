@@ -24,14 +24,19 @@ interface UploadModalProps {
 
 interface JobStatus {
   job_id: string;
-  video_id: string;
+  video_id?: string;
   status: string;
   message?: string;
   progress?: number;
   frames_processed?: number;
 }
 
-export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
+interface UploadResponse {
+  job_id: string;
+  video_id: string;
+}
+
+export function UploadModal({ open, onClose }: UploadModalProps) {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -65,7 +70,10 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
 
     try {
       // Upload the file
-      const result = await videoService.upload(file, setProgress);
+      const result = (await videoService.upload(
+        file,
+        setProgress
+      )) as UploadResponse;
       setJobId(result.job_id);
       setVideoId(result.video_id);
 

@@ -30,3 +30,5 @@ export function Technology() {
     </section>
   );
 }
+
+export default Technology;

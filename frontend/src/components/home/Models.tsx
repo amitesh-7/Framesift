@@ -52,3 +52,5 @@ export function Models() {
     </section>
   );
 }
+
+export default Models;

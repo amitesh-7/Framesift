@@ -49,13 +49,7 @@ export function SearchPanel({
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-zinc-800">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-medium text-white">Search</h2>
-          <Button variant="ghost" size="sm" onClick={onUploadClick}>
-            <Upload className="w-4 h-4 mr-1.5" />
-            Upload
-          </Button>
-        </div>
+        <h2 className="font-medium text-white mb-3">Search</h2>
 
         <form onSubmit={handleSearch}>
           <div className="relative">
@@ -63,11 +57,28 @@ export function SearchPanel({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Describe what you're looking for..."
+              placeholder={
+                videoId
+                  ? "Describe what you're looking for..."
+                  : "Upload a video to search..."
+              }
               className="pl-10"
+              disabled={!videoId}
             />
           </div>
         </form>
+
+        {videoId && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onUploadClick}
+            className="w-full mt-3"
+          >
+            <Upload className="w-4 h-4 mr-1.5" />
+            Upload Another Video
+          </Button>
+        )}
       </div>
 
       {/* Results */}
@@ -114,7 +125,7 @@ export function SearchPanel({
                     {Math.round(result.score * 100)}%
                   </span>
                 </div>
-                <p className="text-sm text-zinc-400 line-clamp-2">
+                <p className="text-sm text-zinc-400 whitespace-pre-wrap break-words">
                   {result.description}
                 </p>
                 <ChevronRight className="w-4 h-4 text-zinc-600 mt-2 group-hover:translate-x-1 transition-transform" />

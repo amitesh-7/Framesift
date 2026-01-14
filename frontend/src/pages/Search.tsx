@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Home, Menu, X, Video, Search as SearchIcon } from "lucide-react";
+import { Home, Menu, X, Video, Upload } from "lucide-react";
 import {
   VideoPlayer,
   VideoPlayerHandle,
@@ -8,13 +8,11 @@ import {
   UploadModal,
 } from "@/components/search";
 import { Button } from "@/components/ui";
-import { useAuthStore } from "@/store";
 import { cn } from "@/lib/utils";
 
 export function SearchPage() {
   const [searchParams] = useSearchParams();
   const videoId = searchParams.get("video") || undefined;
-  const { isAuthenticated } = useAuthStore();
 
   const videoRef = useRef<VideoPlayerHandle>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -72,21 +70,15 @@ export function SearchPage() {
             <VideoPlayer ref={videoRef} src={videoSrc} className="mb-4" />
 
             {!videoId && (
-              <div className="p-8 rounded-xl border border-zinc-800 bg-zinc-900/50 text-center">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center mx-auto mb-4">
-                  <SearchIcon className="w-6 h-6 text-white" />
-                </div>
-                <h2 className="text-lg font-medium text-white mb-2">
-                  No Video Selected
-                </h2>
-                <p className="text-sm text-zinc-500 mb-4">
-                  Upload a video or use the search panel to find content.
-                </p>
-                {!isAuthenticated && (
-                  <p className="text-xs text-zinc-600">
-                    Sign in to upload videos
-                  </p>
-                )}
+              <div className="p-12 rounded-xl border border-zinc-800 bg-zinc-900/50 flex items-center justify-center">
+                <Button
+                  onClick={() => setUploadOpen(true)}
+                  size="lg"
+                  className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white px-8 py-6 text-lg"
+                >
+                  <Upload className="w-5 h-5 mr-2" />
+                  Upload Video
+                </Button>
               </div>
             )}
           </div>
