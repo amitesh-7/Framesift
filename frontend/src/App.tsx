@@ -5,6 +5,7 @@ import {
   FeaturesPage,
   HowItWorksPage,
   TechnologyPage,
+  AdminPage,
 } from "./pages";
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
       <Route path="/features" element={<FeaturesPage />} />
       <Route path="/how-it-works" element={<HowItWorksPage />} />
       <Route path="/technology" element={<TechnologyPage />} />
+      <Route path="/admin" element={<AdminPage />} />
     </Routes>
   );
 }

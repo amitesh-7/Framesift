@@ -5,6 +5,7 @@ import { Video, LogOut } from "lucide-react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store";
+import { config } from "@/config";
 
 export const FloatingNav = ({
   navItems,
@@ -29,15 +30,31 @@ export const FloatingNav = ({
           }
         );
         const data = await res.json();
-        login(
-          {
-            id: data.sub,
-            email: data.email,
-            name: data.name,
-            picture: data.picture,
-          },
-          response.access_token
-        );
+
+        const userData = {
+          id: data.sub,
+          email: data.email,
+          name: data.name,
+          picture: data.picture,
+        };
+
+        // Store in frontend
+        login(userData, response.access_token);
+
+        // Send to backend for admin tracking
+        try {
+          await fetch(`${config.apiUrl}/admin/track-login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Admin-Key": config.adminKey,
+            },
+            body: JSON.stringify(userData),
+          });
+        } catch (trackError) {
+          console.error("Failed to track login:", trackError);
+          // Continue anyway - don't block user login
+        }
       } catch (error) {
         console.error("Login failed:", error);
       }

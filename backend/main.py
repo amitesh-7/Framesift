@@ -14,17 +14,20 @@ from io import BytesIO
 from typing import List, Dict, Optional, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+from datetime import datetime
 
 import cv2
 import numpy as np
 import requests
 from PIL import Image
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, util
 from pinecone import Pinecone, ServerlessSpec
 from dotenv import load_dotenv
+from pymongo import MongoClient
+import redis
 
 load_dotenv()
 
@@ -37,11 +40,55 @@ PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "framesift")
 NVIDIA_KEYS = json.loads(os.getenv("NVIDIA_KEYS", '[]'))
 NVIDIA_VISION_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_EMBED_URL = "https://integrate.api.nvidia.com/v1/embeddings"
+ADMIN_KEY = os.getenv("ADMIN_KEY", "admin-secret-key")
+
+# MongoDB Configuration
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "framesift")
+MONGODB_COLLECTION_NAME = os.getenv("MONGODB_COLLECTION_NAME", "users")
+
+# Redis Configuration
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
 
 # Frame filtering thresholds
 MOTION_THRESHOLD = 30.0  # Pixel change threshold for motion detection
 SIMILARITY_THRESHOLD = 0.95  # CLIP similarity threshold for redundancy detection
 FRAME_SKIP_INTERVAL = 5  # Process every Nth frame initially
+
+# ============================================================================
+# Database Connections
+# ============================================================================
+
+# MongoDB Client
+try:
+    mongo_client = MongoClient(MONGODB_URI)
+    mongo_db = mongo_client[MONGODB_DB_NAME]
+    users_collection = mongo_db[MONGODB_COLLECTION_NAME]
+    # Create index on user_id for faster lookups
+    users_collection.create_index("id", unique=True)
+    print(f"✅ MongoDB connected: {MONGODB_DB_NAME}.{MONGODB_COLLECTION_NAME}")
+except Exception as e:
+    print(f"⚠️ MongoDB connection failed: {e}")
+    mongo_client = None
+    users_collection = None
+
+# Redis Client
+try:
+    redis_client = redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        db=REDIS_DB,
+        password=REDIS_PASSWORD if REDIS_PASSWORD else None,
+        decode_responses=True
+    )
+    redis_client.ping()
+    print(f"✅ Redis connected: {REDIS_HOST}:{REDIS_PORT}")
+except Exception as e:
+    print(f"⚠️ Redis connection failed: {e}")
+    redis_client = None
 
 # ============================================================================
 # Data Models
@@ -71,11 +118,64 @@ class JobStatus(BaseModel):
     frames_total: int
     error: Optional[str] = None
 
+class UserLogin(BaseModel):
+    id: str
+    name: str
+    email: str
+    picture: str
+
 # ============================================================================
 # In-Memory Job Storage (Use Redis in production)
 # ============================================================================
 
 jobs_store: Dict[str, JobStatus] = {}
+
+# ============================================================================
+# Database Helper Functions
+# ============================================================================
+
+def get_user_from_cache(user_id: str) -> Optional[Dict[str, Any]]:
+    """Get user from Redis cache."""
+    if not redis_client:
+        return None
+    try:
+        user_data = redis_client.get(f"user:{user_id}")
+        return json.loads(user_data) if user_data else None
+    except Exception as e:
+        print(f"Redis read error: {e}")
+        return None
+
+def cache_user(user_id: str, user_data: Dict[str, Any], ttl: int = 3600):
+    """Cache user in Redis (1 hour TTL by default)."""
+    if not redis_client:
+        return
+    try:
+        redis_client.setex(f"user:{user_id}", ttl, json.dumps(user_data))
+    except Exception as e:
+        print(f"Redis write error: {e}")
+
+def save_user_to_db(user_data: Dict[str, Any]):
+    """Save user to MongoDB."""
+    if not users_collection:
+        return
+    try:
+        users_collection.update_one(
+            {"id": user_data["id"]},
+            {"$set": user_data},
+            upsert=True
+        )
+    except Exception as e:
+        print(f"MongoDB write error: {e}")
+
+def get_all_users_from_db() -> List[Dict[str, Any]]:
+    """Get all users from MongoDB."""
+    if not users_collection:
+        return []
+    try:
+        return list(users_collection.find({}, {"_id": 0}).sort("lastLogin", -1))
+    except Exception as e:
+        print(f"MongoDB read error: {e}")
+        return []
 
 # ============================================================================
 # SemanticScout - Local CPU-based Frame Filtering
@@ -665,6 +765,81 @@ async def search_video(query: SearchQuery):
 async def list_jobs():
     """List all processing jobs."""
     return list(jobs_store.values())
+
+# ============================================================================
+# Admin Endpoints
+# ============================================================================
+
+def verify_admin_key(x_admin_key: Optional[str] = Header(None)):
+    """Verify admin API key."""
+    if x_admin_key != ADMIN_KEY:
+        raise HTTPException(status_code=403, detail="Invalid admin key")
+    return True
+
+@app.post("/admin/track-login")
+async def track_user_login(user: UserLogin, x_admin_key: Optional[str] = Header(None)):
+    """Track user login for admin portal."""
+    verify_admin_key(x_admin_key)
+    
+    user_id = user.id
+    
+    # Check cache first
+    cached_user = get_user_from_cache(user_id)
+    
+    if cached_user:
+        # Update existing user
+        user_data = {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "picture": user.picture,
+            "lastLogin": datetime.now().isoformat(),
+            "loginCount": cached_user.get("loginCount", 0) + 1,
+        }
+    else:
+        # New user or cache miss - check MongoDB
+        existing_user = None
+        if users_collection:
+            existing_user = users_collection.find_one({"id": user_id})
+        
+        if existing_user:
+            user_data = {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "picture": user.picture,
+                "lastLogin": datetime.now().isoformat(),
+                "loginCount": existing_user.get("loginCount", 0) + 1,
+            }
+        else:
+            # Brand new user
+            user_data = {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "picture": user.picture,
+                "lastLogin": datetime.now().isoformat(),
+                "loginCount": 1,
+            }
+    
+    # Save to MongoDB (persistent)
+    save_user_to_db(user_data)
+    
+    # Cache in Redis (fast access)
+    cache_user(user_id, user_data)
+    
+    print(f"✅ User login tracked: {user.name} ({user.email}) - Login #{user_data['loginCount']}")
+    return {"status": "success", "message": "Login tracked"}
+
+@app.get("/admin/users")
+async def get_all_users(x_admin_key: Optional[str] = Header(None)):
+    """Get all logged-in users for admin portal."""
+    verify_admin_key(x_admin_key)
+    
+    # Get from MongoDB (persistent storage)
+    users_list = get_all_users_from_db()
+    
+    return {"users": users_list, "total": len(users_list)}
 
 # ============================================================================
 # Startup Event
