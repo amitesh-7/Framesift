@@ -29,10 +29,14 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 import redis
 
-load_dotenv()
+# Load environment variables from .env.local (development) or .env (production)
+load_dotenv(".env.local")
+if not os.getenv("MONGODB_URI"):  # Fallback to .env if .env.local doesn't exist
+    load_dotenv()
 
 # ============================================================================
 # Configuration
+# ============================================================================
 # ============================================================================
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "")
@@ -48,6 +52,7 @@ MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "framesift")
 MONGODB_COLLECTION_NAME = os.getenv("MONGODB_COLLECTION_NAME", "users")
 
 # Redis Configuration
+REDIS_URL = os.getenv("REDIS_URL", "")  # Cloud Redis URL (takes priority)
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("REDIS_DB", "0"))
@@ -77,15 +82,26 @@ except Exception as e:
 
 # Redis Client
 try:
-    redis_client = redis.Redis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        db=REDIS_DB,
-        password=REDIS_PASSWORD if REDIS_PASSWORD else None,
-        decode_responses=True
-    )
+    if REDIS_URL:
+        # Use Redis URL (for cloud Redis)
+        redis_client = redis.Redis.from_url(
+            REDIS_URL,
+            db=REDIS_DB,
+            decode_responses=True,
+            socket_connect_timeout=5
+        )
+    else:
+        # Use host/port (for local Redis)
+        redis_client = redis.Redis(
+            host=REDIS_HOST,
+            port=REDIS_PORT,
+            db=REDIS_DB,
+            password=REDIS_PASSWORD if REDIS_PASSWORD else None,
+            decode_responses=True
+        )
     redis_client.ping()
-    print(f"✅ Redis connected: {REDIS_HOST}:{REDIS_PORT}")
+    connection_info = REDIS_URL[:40] + "..." if REDIS_URL else f"{REDIS_HOST}:{REDIS_PORT}"
+    print(f"✅ Redis connected: {connection_info}")
 except Exception as e:
     print(f"⚠️ Redis connection failed: {e}")
     redis_client = None
