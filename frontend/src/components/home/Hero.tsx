@@ -279,32 +279,32 @@ export function Hero() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="relative z-20 max-w-4xl mx-auto px-4 py-20 text-center"
+        className="relative z-20 max-w-5xl mx-auto px-4 py-20 text-center"
       >
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300 text-sm mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300 text-sm mb-10">
           <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
           Powered by NVIDIA NIM + Llama 3.2 Vision
         </div>
 
         {/* Scrambled Title */}
-        <div className="mb-4">
+        <div className="mb-8">
           <ScrambledTitle />
         </div>
 
         {/* Subtitle */}
-        <p className="text-lg md:text-xl bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent font-semibold mb-6">
+        <p className="text-xl md:text-2xl bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent font-semibold mb-10">
           AI-Powered Video Search
         </p>
 
         {/* Description */}
-        <p className="max-w-xl mx-auto text-zinc-400 mb-8">
+        <p className="max-w-2xl mx-auto text-zinc-400 text-base md:text-lg mb-12 leading-relaxed">
           Describe what you're looking for and jump directly to the exact
           moment. Semantic search powered by multimodal AI.
         </p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16">
           {isAuthenticated ? (
             <Link to="/search">
               <Button size="lg" className="min-w-[200px]">
@@ -350,7 +350,7 @@ export function Hero() {
         </div>
 
         {/* Stats */}
-        <div className="flex flex-wrap justify-center gap-8 pt-4">
+        <div className="flex flex-wrap justify-center gap-12 pt-8">
           {[
             {
               value: config.features.embedDimensions,
