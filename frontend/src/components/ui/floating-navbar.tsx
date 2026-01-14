@@ -68,20 +68,13 @@ export const FloatingNav = ({
       {/* Nav Links */}
       <div className="hidden md:flex items-center gap-6">
         {navItems.map((navItem, idx: number) => (
-          <a
+          <Link
             key={`link-${idx}`}
-            href={navItem.link}
+            to={navItem.link}
             className="relative text-zinc-400 text-sm hover:text-white transition-colors"
-            onClick={(e) => {
-              e.preventDefault();
-              const element = document.querySelector(navItem.link);
-              if (element) {
-                element.scrollIntoView({ behavior: "smooth", block: "start" });
-              }
-            }}
           >
             {navItem.name}
-          </a>
+          </Link>
         ))}
       </div>
 

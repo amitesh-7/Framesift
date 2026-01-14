@@ -10,9 +10,9 @@ import {
 import { FloatingNav, BackgroundPathsWrapper } from "@/components/ui";
 
 const navItems = [
-  { name: "Features", link: "#features" },
-  { name: "How It Works", link: "#how-it-works" },
-  { name: "Technology", link: "#tech" },
+  { name: "Features", link: "/features" },
+  { name: "How It Works", link: "/how-it-works" },
+  { name: "Technology", link: "/technology" },
 ];
 
 export function HomePage() {

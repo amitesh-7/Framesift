@@ -1,12 +1,20 @@
 import { Routes, Route } from "react-router-dom";
-import { HomePage } from "./pages/Home";
-import { SearchPage } from "./pages/Search";
+import {
+  HomePage,
+  SearchPage,
+  FeaturesPage,
+  HowItWorksPage,
+  TechnologyPage,
+} from "./pages";
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/search" element={<SearchPage />} />
+      <Route path="/features" element={<FeaturesPage />} />
+      <Route path="/how-it-works" element={<HowItWorksPage />} />
+      <Route path="/technology" element={<TechnologyPage />} />
     </Routes>
   );
 }
