@@ -23,7 +23,21 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       login: (user, token) => set({ user, token, isAuthenticated: true }),
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      logout: async () => {
+        // Clear Pinecone database on logout
+        try {
+          const apiUrl =
+            import.meta.env.VITE_API_URL || "http://localhost:8000";
+          await fetch(`${apiUrl}/clear-database`, {
+            method: "POST",
+          });
+          console.log("Database cleared on logout");
+        } catch (error) {
+          console.error("Failed to clear database:", error);
+        }
+        // Clear local auth state
+        set({ user: null, token: null, isAuthenticated: false });
+      },
     }),
     {
       name: "framesift-auth",

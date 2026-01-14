@@ -1,4 +1,4 @@
-import { useState, useRef, ChangeEvent } from "react";
+import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -7,10 +7,14 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  Film,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { videoService } from "@/services";
 import { formatFileSize } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import api from "@/services/api";
 
 interface UploadModalProps {
   open: boolean;
@@ -18,14 +22,29 @@ interface UploadModalProps {
   onSuccess?: (videoId: string) => void;
 }
 
+interface JobStatus {
+  job_id: string;
+  video_id: string;
+  status: string;
+  message?: string;
+  progress?: number;
+  frames_processed?: number;
+}
+
 export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
+  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<
-    "idle" | "uploading" | "success" | "error"
+    "idle" | "uploading" | "processing" | "success" | "error"
   >("idle");
   const [error, setError] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [videoId, setVideoId] = useState<string | null>(null);
+  const [processingMessage, setProcessingMessage] =
+    useState<string>("Analyzing video...");
+  const [framesProcessed, setFramesProcessed] = useState<number>(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -42,21 +61,80 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
 
     setUploading(true);
     setStatus("uploading");
+    setProgress(0);
 
     try {
+      // Upload the file
       const result = await videoService.upload(file, setProgress);
-      setStatus("success");
-      onSuccess?.(result.video_id);
-      setTimeout(() => {
-        handleClose();
-      }, 1500);
-    } catch {
+      setJobId(result.job_id);
+      setVideoId(result.video_id);
+
+      // Switch to processing status
+      setStatus("processing");
+      setProcessingMessage("Extracting frames...");
+    } catch (err) {
       setStatus("error");
-      setError("Upload failed. Please try again.");
-    } finally {
+      setError(
+        err instanceof Error ? err.message : "Upload failed. Please try again."
+      );
       setUploading(false);
     }
   };
+
+  // Poll job status
+  useEffect(() => {
+    if (!jobId || status !== "processing") return;
+
+    let pollCount = 0;
+    const maxPolls = 120; // 2 minutes max (1s intervals)
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data } = await api.get<JobStatus>(`/job/${jobId}`);
+
+        // Update processing message
+        if (data.message) {
+          setProcessingMessage(data.message);
+        }
+        if (data.frames_processed) {
+          setFramesProcessed(data.frames_processed);
+        }
+
+        // Check if completed
+        if (data.status === "completed") {
+          clearInterval(pollInterval);
+          setStatus("success");
+          setUploading(false);
+
+          // Redirect to search page with video ID
+          setTimeout(() => {
+            if (videoId) {
+              navigate(`/search?video=${videoId}`);
+            }
+            handleClose();
+          }, 2000);
+        } else if (data.status === "failed") {
+          clearInterval(pollInterval);
+          setStatus("error");
+          setError(data.message || "Processing failed");
+          setUploading(false);
+        }
+
+        pollCount++;
+        if (pollCount >= maxPolls) {
+          clearInterval(pollInterval);
+          setStatus("error");
+          setError("Processing timeout. Please check back later.");
+          setUploading(false);
+        }
+      } catch (err) {
+        console.error("Error polling job status:", err);
+        // Don't stop polling on temporary errors
+      }
+    }, 1000);
+
+    return () => clearInterval(pollInterval);
+  }, [jobId, status, videoId, navigate]);
 
   const handleClose = () => {
     if (!uploading) {
@@ -65,6 +143,10 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
       setStatus("idle");
       setProgress(0);
       setError(null);
+      setJobId(null);
+      setVideoId(null);
+      setProcessingMessage("Analyzing video...");
+      setFramesProcessed(0);
     }
   };
 
@@ -138,7 +220,7 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                 </div>
 
                 {status === "uploading" && (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-violet-500 transition-all"
@@ -146,8 +228,52 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                       />
                     </div>
                     <p className="text-xs text-zinc-500 text-center">
-                      {progress}%
+                      Uploading: {progress}%
                     </p>
+                  </div>
+                )}
+
+                {status === "processing" && (
+                  <div className="space-y-3 p-4 rounded-lg bg-violet-500/10 border border-violet-500/20">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Sparkles className="w-5 h-5 text-violet-400 animate-pulse" />
+                        <div className="absolute inset-0 blur-md bg-violet-400/50 animate-pulse" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">
+                          Processing Video
+                        </p>
+                        <p className="text-xs text-violet-300/80">
+                          {processingMessage}
+                        </p>
+                      </div>
+                    </div>
+                    {framesProcessed > 0 && (
+                      <div className="flex items-center gap-2 text-xs text-zinc-400">
+                        <Film className="w-3.5 h-3.5" />
+                        <span>{framesProcessed} frames analyzed</span>
+                      </div>
+                    )}
+                    <div className="h-1 bg-zinc-700/50 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-500 animate-[shimmer_2s_infinite] w-1/3" />
+                    </div>
+                  </div>
+                )}
+
+                {status === "success" && (
+                  <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <div className="flex items-center gap-3 text-emerald-400">
+                      <CheckCircle className="w-5 h-5" />
+                      <div>
+                        <p className="text-sm font-medium">
+                          Processing Complete!
+                        </p>
+                        <p className="text-xs text-emerald-300/80">
+                          Redirecting to search...
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -169,15 +295,27 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
                   <Button
                     className="flex-1"
                     onClick={handleUpload}
-                    disabled={uploading || status === "success"}
+                    disabled={
+                      uploading ||
+                      status === "success" ||
+                      status === "processing"
+                    }
                   >
-                    {uploading ? (
+                    {status === "uploading" ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Uploading
                       </>
+                    ) : status === "processing" ? (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
+                        Processing
+                      </>
                     ) : status === "success" ? (
-                      "Done!"
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Done!
+                      </>
                     ) : (
                       "Upload"
                     )}

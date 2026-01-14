@@ -86,11 +86,22 @@ export function Navbar() {
                   Search
                 </Button>
               </Link>
-              <img
-                src={user.picture}
-                alt={user.name}
-                className="w-8 h-8 rounded-full"
-              />
+              {user.picture ? (
+                <img
+                  src={user.picture}
+                  alt={user.name}
+                  className="w-8 h-8 rounded-full"
+                  onError={(e) => {
+                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      user.name
+                    )}&background=7c3aed&color=fff&size=128`;
+                  }}
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-sm font-medium">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
               <Button variant="ghost" size="sm" onClick={logout}>
                 <LogOut className="w-4 h-4" />
               </Button>

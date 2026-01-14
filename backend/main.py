@@ -123,15 +123,18 @@ class SearchResult(BaseModel):
 
 class UploadResponse(BaseModel):
     job_id: str
+    video_id: str
     status: str
     message: str
 
 class JobStatus(BaseModel):
     job_id: str
+    video_id: str
     status: str
     progress: float
     frames_processed: int
     frames_total: int
+    message: Optional[str] = None
     error: Optional[str] = None
 
 class UserLogin(BaseModel):
@@ -578,6 +581,21 @@ class VectorStore:
         print(f"📤 Upserted {len(vectors)} vectors to Pinecone")
         return len(vectors)
     
+    def clear_all(self) -> bool:
+        """Clear all vectors from Pinecone index."""
+        if self.index is None:
+            print("⚠️ Pinecone not configured, skipping clear")
+            return False
+        
+        try:
+            # Delete all vectors by deleting entire namespace (or all if no namespace)
+            self.index.delete(delete_all=True)
+            print("🗑️ Cleared all vectors from Pinecone")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to clear Pinecone: {e}")
+            return False
+    
     def search(self, query_embedding: List[float], video_id: Optional[str] = None, top_k: int = 10) -> List[Dict]:
         """Search for similar frames."""
         if self.index is None:
@@ -642,6 +660,7 @@ def process_video_task(video_path: str, job_id: str):
     """Background task to process uploaded video."""
     try:
         jobs_store[job_id].status = "processing"
+        jobs_store[job_id].message = "Extracting frames..."
         
         # Step 1: Local filtering with Scout
         print(f"\n{'='*60}")
@@ -653,13 +672,16 @@ def process_video_task(video_path: str, job_id: str):
         if not surviving_frames:
             jobs_store[job_id].status = "completed"
             jobs_store[job_id].progress = 1.0
+            jobs_store[job_id].message = "Processing complete"
             print("⚠️ No frames survived filtering")
             return
         
         # Step 2: Cloud analysis with NVIDIA
+        jobs_store[job_id].message = "Analyzing frames with AI..."
         analyzed_frames = nvidia_processor.process_frames(surviving_frames)
         
         # Step 3: Store in Pinecone
+        jobs_store[job_id].message = "Storing vectors..."
         vector_store.upsert_frames(job_id, analyzed_frames)
         
         # Cleanup
@@ -668,6 +690,7 @@ def process_video_task(video_path: str, job_id: str):
         
         jobs_store[job_id].status = "completed"
         jobs_store[job_id].progress = 1.0
+        jobs_store[job_id].message = "Processing complete"
         
         print(f"\n✅ Job {job_id} completed successfully!")
         print(f"   Frames analyzed: {len(analyzed_frames)}")
@@ -675,6 +698,7 @@ def process_video_task(video_path: str, job_id: str):
     except Exception as e:
         jobs_store[job_id].status = "failed"
         jobs_store[job_id].error = str(e)
+        jobs_store[job_id].message = f"Processing failed: {str(e)}"
         print(f"❌ Job {job_id} failed: {e}")
 
 # ============================================================================
@@ -725,6 +749,7 @@ async def upload_video(
     # Initialize job status
     jobs_store[job_id] = JobStatus(
         job_id=job_id,
+        video_id=job_id,
         status="queued",
         progress=0.0,
         frames_processed=0,
@@ -736,6 +761,7 @@ async def upload_video(
     
     return UploadResponse(
         job_id=job_id,
+        video_id=job_id,
         status="queued",
         message="Video upload successful. Processing started."
     )
@@ -864,6 +890,28 @@ async def get_all_users(x_admin_key: Optional[str] = Header(None)):
     users_list = get_all_users_from_db()
     
     return {"users": users_list, "total": len(users_list)}
+
+@app.post("/clear-database")
+async def clear_database():
+    """Clear all vectors from Pinecone database on user logout."""
+    try:
+        success = vector_store.clear_all()
+        if success:
+            return {
+                "status": "success",
+                "message": "Database cleared successfully"
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Database not configured or failed to clear"
+            }
+    except Exception as e:
+        print(f"❌ Error clearing database: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 # ============================================================================
 # Startup Event

@@ -66,3 +66,12 @@ html {
 ::selection {
   background: rgba(124, 58, 237, 0.4);
 }
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}

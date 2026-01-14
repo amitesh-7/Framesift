@@ -99,11 +99,22 @@ export const FloatingNav = ({
       <div className="flex items-center gap-2">
         {isAuthenticated && user ? (
           <>
-            <img
-              src={user.picture}
-              alt={user.name}
-              className="w-7 h-7 rounded-full"
-            />
+            {user.picture ? (
+              <img
+                src={user.picture}
+                alt={user.name}
+                className="w-7 h-7 rounded-full"
+                onError={(e) => {
+                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    user.name
+                  )}&background=7c3aed&color=fff&size=128`;
+                }}
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-medium">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+            )}
             <button
               onClick={logout}
               className="p-2 text-zinc-400 hover:text-white transition-colors"

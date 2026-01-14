@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { FloatingNav, BackgroundPathsWrapper, Button } from "@/components/ui";
 import { Footer } from "@/components/layout";
-import { Shield, User, Mail, Key, Calendar, LogIn } from "lucide-react";
+import { Shield, User, Mail, Key, Calendar, LogIn, LogOut } from "lucide-react";
 import { config } from "@/config";
 
 interface UserLogin {
@@ -74,6 +74,13 @@ export function AdminPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    setIsAdminAuthenticated(false);
+    setAdminEmail("");
+    setAdminKey("");
+    setUsers([]);
   };
 
   // Show login form if not authenticated
@@ -158,13 +165,27 @@ export function AdminPage() {
         <div className="max-w-7xl mx-auto px-4 pt-28 pb-20">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <Shield className="w-8 h-8 text-violet-500" />
-              <h1 className="text-3xl font-bold text-white">Admin Portal</h1>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <Shield className="w-8 h-8 text-violet-500" />
+                  <h1 className="text-3xl font-bold text-white">
+                    Admin Portal
+                  </h1>
+                </div>
+                <p className="text-zinc-400">
+                  Monitor user logins and authentication activity
+                </p>
+              </div>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
             </div>
-            <p className="text-zinc-400">
-              Monitor user logins and authentication activity
-            </p>
           </div>
 
           {/* Stats Cards */}
@@ -251,11 +272,22 @@ export function AdminPage() {
                         >
                           <td className="p-4">
                             <div className="flex items-center gap-3">
-                              <img
-                                src={userLogin.picture}
-                                alt={userLogin.name}
-                                className="w-10 h-10 rounded-full"
-                              />
+                              {userLogin.picture ? (
+                                <img
+                                  src={userLogin.picture}
+                                  alt={userLogin.name}
+                                  className="w-10 h-10 rounded-full"
+                                  onError={(e) => {
+                                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                      userLogin.name
+                                    )}&background=7c3aed&color=fff`;
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-violet-500 flex items-center justify-center text-white font-medium">
+                                  {userLogin.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
                               <div>
                                 <p className="text-white font-medium">
                                   {userLogin.name}
