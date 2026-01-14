@@ -152,7 +152,7 @@ jobs_store: Dict[str, JobStatus] = {}
 
 def get_user_from_cache(user_id: str) -> Optional[Dict[str, Any]]:
     """Get user from Redis cache."""
-    if not redis_client:
+    if redis_client is None:
         return None
     try:
         user_data = redis_client.get(f"user:{user_id}")
@@ -163,7 +163,7 @@ def get_user_from_cache(user_id: str) -> Optional[Dict[str, Any]]:
 
 def cache_user(user_id: str, user_data: Dict[str, Any], ttl: int = 3600):
     """Cache user in Redis (1 hour TTL by default)."""
-    if not redis_client:
+    if redis_client is None:
         return
     try:
         redis_client.setex(f"user:{user_id}", ttl, json.dumps(user_data))
@@ -172,7 +172,7 @@ def cache_user(user_id: str, user_data: Dict[str, Any], ttl: int = 3600):
 
 def save_user_to_db(user_data: Dict[str, Any]):
     """Save user to MongoDB."""
-    if not users_collection:
+    if users_collection is None:
         return
     try:
         users_collection.update_one(
@@ -185,7 +185,7 @@ def save_user_to_db(user_data: Dict[str, Any]):
 
 def get_all_users_from_db() -> List[Dict[str, Any]]:
     """Get all users from MongoDB."""
-    if not users_collection:
+    if users_collection is None:
         return []
     try:
         return list(users_collection.find({}, {"_id": 0}).sort("lastLogin", -1))
@@ -621,6 +621,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add COOP headers for Google OAuth
+@app.middleware("http")
+async def add_coop_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
+    response.headers["Cross-Origin-Embedder-Policy"] = "unsafe-none"
+    return response
+
 # Initialize components
 scout = SemanticScout()
 nvidia_processor = NvidiaProcessor(NVIDIA_KEYS)
@@ -815,7 +823,7 @@ async def track_user_login(user: UserLogin, x_admin_key: Optional[str] = Header(
     else:
         # New user or cache miss - check MongoDB
         existing_user = None
-        if users_collection:
+        if users_collection is not None:
             existing_user = users_collection.find_one({"id": user_id})
         
         if existing_user:
