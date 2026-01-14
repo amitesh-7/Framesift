@@ -36,7 +36,7 @@ export function SearchPanel({
     setError(null);
 
     try {
-      const data = await videoService.search(query.trim(), videoId, 10);
+      const data = await videoService.search(query.trim(), videoId, 5);
       setResults(data.results || []);
     } catch {
       setError("Search failed. Please try again.");

@@ -23,7 +23,8 @@ export const videoService = {
       video_id: videoId,
       top_k: topK,
     });
-    return data;
+    // Backend returns array directly, wrap it for consistency
+    return { results: data, query };
   },
 
   upload: async (

@@ -106,13 +106,11 @@ export function UploadModal({ open, onClose, onSuccess }: UploadModalProps) {
           setStatus("success");
           setUploading(false);
 
-          // Redirect to search page with video ID
-          setTimeout(() => {
-            if (videoId) {
-              navigate(`/search?video=${videoId}`);
-            }
-            handleClose();
-          }, 2000);
+          // Close modal and redirect immediately
+          handleClose();
+          if (videoId) {
+            navigate(`/search?video=${videoId}`);
+          }
         } else if (data.status === "failed") {
           clearInterval(pollInterval);
           setStatus("error");

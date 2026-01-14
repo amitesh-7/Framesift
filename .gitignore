@@ -16,6 +16,7 @@ backend/venv/
 backend/.env
 backend/.pytest_cache/
 backend/framesift-temp/
+backend/videos/
 *.sqlite3
 
 # Node / Frontend

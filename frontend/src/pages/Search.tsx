@@ -20,6 +20,10 @@ export function SearchPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
 
+  // Generate video source URL from video ID
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  const videoSrc = videoId ? `${apiUrl}/videos/${videoId}` : undefined;
+
   const handleResultClick = (timestamp: number) => {
     videoRef.current?.seekTo(timestamp);
   };
@@ -65,7 +69,7 @@ export function SearchPage() {
           className={cn("flex-1 p-4 transition-all", sidebarOpen && "md:mr-80")}
         >
           <div className="max-w-4xl mx-auto">
-            <VideoPlayer ref={videoRef} className="mb-4" />
+            <VideoPlayer ref={videoRef} src={videoSrc} className="mb-4" />
 
             {!videoId && (
               <div className="p-8 rounded-xl border border-zinc-800 bg-zinc-900/50 text-center">

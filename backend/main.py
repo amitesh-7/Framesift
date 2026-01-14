@@ -22,6 +22,7 @@ import requests
 from PIL import Image
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, util
 from pinecone import Pinecone, ServerlessSpec
@@ -613,6 +614,7 @@ class VectorStore:
             include_metadata=True
         )
         
+        # Pinecone already returns results sorted by score (descending)
         return [{
             'frame_id': match['id'],
             'score': match['score'],
@@ -684,9 +686,8 @@ def process_video_task(video_path: str, job_id: str):
         jobs_store[job_id].message = "Storing vectors..."
         vector_store.upsert_frames(job_id, analyzed_frames)
         
-        # Cleanup
-        if os.path.exists(video_path):
-            os.remove(video_path)
+        # Don't delete video - keep it for playback
+        # Videos are stored in ./videos/ directory
         
         jobs_store[job_id].status = "completed"
         jobs_store[job_id].progress = 1.0
@@ -738,9 +739,14 @@ async def upload_video(
     # Generate job ID
     job_id = str(uuid.uuid4())
     
-    # Save file temporarily
-    temp_dir = tempfile.gettempdir()
-    video_path = os.path.join(temp_dir, f"{job_id}_{file.filename}")
+    # Save file to persistent storage
+    videos_dir = os.path.join(os.getcwd(), "videos")
+    os.makedirs(videos_dir, exist_ok=True)
+    
+    # Save with original extension
+    file_ext = os.path.splitext(file.filename)[1]
+    video_filename = f"{job_id}{file_ext}"
+    video_path = os.path.join(videos_dir, video_filename)
     
     with open(video_path, "wb") as f:
         content = await file.read()
@@ -815,6 +821,20 @@ async def search_video(query: SearchQuery):
 async def list_jobs():
     """List all processing jobs."""
     return list(jobs_store.values())
+
+@app.get("/videos/{video_id}")
+async def get_video(video_id: str):
+    """Serve video file for playback."""
+    videos_dir = os.path.join(os.getcwd(), "videos")
+    
+    # Find the video file with this ID (any extension)
+    for ext in [".mp4", ".avi", ".mov", ".webm", ".quicktime"]:
+        video_path = os.path.join(videos_dir, f"{video_id}{ext}")
+        if os.path.exists(video_path):
+            from fastapi.responses import FileResponse
+            return FileResponse(video_path, media_type="video/mp4")
+    
+    raise HTTPException(status_code=404, detail="Video not found")
 
 # ============================================================================
 # Admin Endpoints
@@ -893,21 +913,43 @@ async def get_all_users(x_admin_key: Optional[str] = Header(None)):
 
 @app.post("/clear-database")
 async def clear_database():
-    """Clear all vectors from Pinecone database on user logout."""
+    """Clear all vectors from Pinecone database and delete all video files on user logout."""
     try:
-        success = vector_store.clear_all()
-        if success:
+        # Clear Pinecone vectors
+        vector_success = vector_store.clear_all()
+        
+        # Delete all video files
+        videos_dir = os.path.join(os.getcwd(), "videos")
+        videos_deleted = 0
+        
+        if os.path.exists(videos_dir):
+            for filename in os.listdir(videos_dir):
+                file_path = os.path.join(videos_dir, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        videos_deleted += 1
+                except Exception as e:
+                    print(f"⚠️ Failed to delete {filename}: {e}")
+        
+        print(f"🗑️ Cleared {videos_deleted} video file(s) on logout")
+        
+        if vector_success:
             return {
                 "status": "success",
-                "message": "Database cleared successfully"
+                "message": f"Database and {videos_deleted} video(s) cleared successfully"
             }
         else:
             return {
-                "status": "error",
-                "message": "Database not configured or failed to clear"
+                "status": "partial",
+                "message": f"{videos_deleted} video(s) deleted, but database not configured"
             }
     except Exception as e:
-        print(f"❌ Error clearing database: {e}")
+        print(f"❌ Error clearing data: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
         return {
             "status": "error",
             "message": str(e)
