@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <div align="center">
 
 # 🎬 FrameSift
@@ -449,3 +450,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 _Find any moment. Ask any question. Get instant answers._
 
 </div>
+=======
+---
+title: Framesift Backend
+emoji: 🐨
+colorFrom: green
+colorTo: pink
+sdk: docker
+pinned: false
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+>>>>>>> 8e4f8f7953c40ac0378478a264d05b75f89aed29
