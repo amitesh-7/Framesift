@@ -341,12 +341,6 @@ export function Hero() {
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           )}
-          <Link to="/search">
-            <Button variant="outline" size="lg" className="min-w-[200px]">
-              <Play className="w-4 h-4 mr-2" />
-              Explore Demo
-            </Button>
-          </Link>
         </div>
 
         {/* Stats */}

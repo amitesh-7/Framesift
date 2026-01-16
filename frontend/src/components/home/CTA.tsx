@@ -61,12 +61,6 @@ export function CTA() {
                 Start Free with Google
               </Button>
             )}
-            <Link to="/search">
-              <Button variant="outline" size="lg">
-                <Play className="w-4 h-4 mr-2" />
-                Try Demo
-              </Button>
-            </Link>
           </div>
         </motion.div>
       </div>
