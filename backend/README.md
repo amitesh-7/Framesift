@@ -8,25 +8,38 @@ app_port: 7860
 pinned: false
 ---
 
-# 🎬 FrameSift Backend API
+# FrameSift Backend API
 
-AI-Powered Semantic Video Search Engine - Backend Service
+AI-Powered Semantic Video Search Engine
 
-## 🚀 Features
+## 🔧 Setup Instructions
 
-- **Semantic Video Search**: Natural language queries to find moments in videos
-- **Multi-Model Ensemble**: Llama 3.2 90B Vision + 11B Vision for maximum accuracy
-- **Smart Frame Processing**: Audio spike, brightness spike, physics filters
-- **RAG-Powered Answers**: AI-generated conversational responses
-- **Multi-User Support**: Isolated data per user with Pinecone namespaces
+After deploying this Space, configure these environment variables in Settings → Variables:
 
-## 🔧 Configuration
+**Required:**
 
-This app requires the following environment variables in Hugging Face Space Settings:
+- `NVIDIA_KEYS` = `["nvapi-xxx","nvapi-yyy"]`
+- `PINECONE_API_KEY` = `your-pinecone-key`
+- `PINECONE_INDEX_NAME` = `framesift`
 
-### Required
+**Optional:**
 
-- `NVIDIA_KEYS`: JSON array of NVIDIA NIM API keys `["nvapi-xxx", "nvapi-yyy"]`
+- `MONGODB_URI` = MongoDB connection string
+- `REDIS_URL` = Redis connection string
+- `ENSEMBLE_MODE` = `true` (default)
+
+## 📖 API Documentation
+
+Once running, visit `/docs` for Swagger UI documentation.
+
+## 🚀 Endpoints
+
+- `POST /upload` - Upload and process video
+- `POST /search` - Search video frames
+- `POST /clear-database` - Clear user data
+
+See full documentation at https://github.com/aimbot7/framesift
+
 - `PINECONE_API_KEY`: Your Pinecone API key
 - `PINECONE_INDEX_NAME`: Pinecone index name (default: `framesift`)
 
