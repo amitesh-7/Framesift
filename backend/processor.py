@@ -40,6 +40,23 @@ NVIDIA_EMBED_URL = "https://integrate.api.nvidia.com/v1/embeddings"
 # Load NVIDIA keys
 NVIDIA_KEYS = json.loads(os.getenv("NVIDIA_KEYS", '[]'))
 
+# Enhanced Vision Prompt for better accuracy (Phase 2.1)
+VISION_PROMPT = """Analyze this video frame comprehensively:
+
+**SCENE**: Describe the environment, location, lighting conditions, weather (if outdoor)
+**SUBJECTS**: People, animals, objects - their appearance, position, actions
+**EVENTS**: Any significant occurrences - flashes, movements, impacts, changes
+**VISUAL PHENOMENA**: Lightning, fire, smoke, explosions, sparks, reflections, glows, brightness changes
+**CONTEXT**: What's happening in this moment? What might have just occurred?
+
+IMPORTANT: Use specific terminology:
+- Bright flash in dark/cloudy sky = explicitly say "lightning bolt" or "lightning strike"
+- Sudden bright light = "flash", "explosion", "camera flash", or "lightning"
+- Fast downward movement = "falling", "dropping"
+- Fire/flames = "fire", "burning", "flames"
+
+Be detailed and precise in your description."""
+
 
 # ============================================================================
 # Thread-Safe Key Manager
@@ -187,7 +204,7 @@ class ParallelFrameProcessor:
                     "content": [
                         {
                             "type": "text",
-                            "text": "Describe this video frame in detail. Focus on: objects, actions, people, text, scene context. Be concise but comprehensive."
+                            "text": VISION_PROMPT
                         },
                         {
                             "type": "image_url",

@@ -10,6 +10,7 @@ export interface SearchResult {
 export interface SearchResponse {
   results: SearchResult[];
   query: string;
+  ai_answer?: string; // AI-generated answer based on retrieved frames
 }
 
 export interface DeepScanRequest {
@@ -37,8 +38,8 @@ export const videoService = {
       video_id: videoId,
       top_k: topK,
     });
-    // Backend returns array directly, wrap it for consistency
-    return { results: data, query };
+    // Backend now returns SearchResponse with results, query, and ai_answer
+    return data;
   },
 
   upload: async (

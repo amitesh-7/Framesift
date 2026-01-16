@@ -40,7 +40,7 @@ from scipy import signal
 
 class FramePriority(Enum):
     """Priority levels for frame processing queue."""
-    CRITICAL = 1    # Audio spike - bypass all filters
+    CRITICAL = 1    # Audio spike OR brightness spike - bypass all filters
     HIGH = 2        # Vertical motion (falling/dropping)
     MEDIUM = 3      # General motion (horizontal movement)
     LOW = 4         # Minimal motion
@@ -427,6 +427,155 @@ class PhysicsFilter:
         ]
         
         return should_process, result
+
+
+# ============================================================================
+# Feature C: Brightness Spike Detector (Lightning/Flash Catcher)
+# ============================================================================
+
+@dataclass
+class BrightnessResult:
+    """Result of brightness spike analysis."""
+    is_spike: bool
+    brightness_delta: float
+    current_brightness: float
+    previous_brightness: float
+    priority: FramePriority
+
+
+class BrightnessSpikeDetector:
+    """
+    Detects sudden brightness changes between frames.
+    This is specifically designed to catch:
+    - Lightning flashes
+    - Camera flashes
+    - Explosions
+    - Any sudden illumination changes
+    
+    Lightning typically causes a 50-200% brightness increase in a single frame.
+    
+    Logic:
+    1. Convert frame to grayscale
+    2. Calculate mean brightness (0-255)
+    3. Compare to previous frame's brightness
+    4. If delta > threshold, mark as CRITICAL (lightning detected!)
+    """
+    
+    def __init__(
+        self,
+        spike_threshold: float = 30.0,      # Minimum brightness delta to detect
+        relative_threshold: float = 0.3,    # 30% brightness increase = spike
+        decay_frames: int = 3,              # Ignore next N frames after spike (flash afterglow)
+        min_brightness: float = 20.0        # Ignore very dark frames (noise)
+    ):
+        self.spike_threshold = spike_threshold
+        self.relative_threshold = relative_threshold
+        self.decay_frames = decay_frames
+        self.min_brightness = min_brightness
+        
+        # State tracking
+        self.previous_brightness: Optional[float] = None
+        self.frames_since_spike: int = 999  # Large number = ready to detect
+        self.detected_spikes: List[float] = []  # Timestamps of detected spikes
+    
+    def reset(self):
+        """Reset detector state for new video."""
+        self.previous_brightness = None
+        self.frames_since_spike = 999
+        self.detected_spikes = []
+    
+    def calculate_brightness(self, frame: np.ndarray) -> float:
+        """Calculate mean brightness of a frame."""
+        if len(frame.shape) == 3:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = frame
+        return float(np.mean(gray))
+    
+    def analyze_frame(
+        self, 
+        frame: np.ndarray, 
+        timestamp: float
+    ) -> BrightnessResult:
+        """
+        Analyze frame for brightness spikes.
+        
+        Args:
+            frame: Current video frame (BGR or grayscale)
+            timestamp: Frame timestamp in seconds
+            
+        Returns:
+            BrightnessResult with spike detection info
+        """
+        current_brightness = self.calculate_brightness(frame)
+        
+        # First frame - just store brightness
+        if self.previous_brightness is None:
+            self.previous_brightness = current_brightness
+            return BrightnessResult(
+                is_spike=False,
+                brightness_delta=0.0,
+                current_brightness=current_brightness,
+                previous_brightness=current_brightness,
+                priority=FramePriority.LOW
+            )
+        
+        # Calculate brightness change
+        brightness_delta = current_brightness - self.previous_brightness
+        
+        # Ignore if in decay period (after a spike, frames tend to be bright)
+        self.frames_since_spike += 1
+        if self.frames_since_spike <= self.decay_frames:
+            self.previous_brightness = current_brightness
+            return BrightnessResult(
+                is_spike=False,
+                brightness_delta=brightness_delta,
+                current_brightness=current_brightness,
+                previous_brightness=self.previous_brightness,
+                priority=FramePriority.LOW
+            )
+        
+        # Check for spike (both absolute and relative thresholds)
+        is_spike = False
+        priority = FramePriority.LOW
+        
+        # Absolute threshold check
+        if brightness_delta >= self.spike_threshold:
+            is_spike = True
+        
+        # Relative threshold check (handles varying base brightness)
+        if (self.previous_brightness >= self.min_brightness and
+            brightness_delta / max(self.previous_brightness, 1.0) >= self.relative_threshold):
+            is_spike = True
+        
+        # Also detect sudden DECREASE (lightning aftermath - bright to dark)
+        # This helps catch lightning even if we missed the peak
+        if brightness_delta <= -self.spike_threshold * 1.5:
+            is_spike = True
+        
+        if is_spike:
+            priority = FramePriority.CRITICAL
+            self.frames_since_spike = 0
+            self.detected_spikes.append(timestamp)
+            print(f"  ⚡ BRIGHTNESS SPIKE at {timestamp:.2f}s! "
+                  f"Delta: {brightness_delta:.1f} "
+                  f"({self.previous_brightness:.1f} → {current_brightness:.1f})")
+        
+        # Update state
+        prev = self.previous_brightness
+        self.previous_brightness = current_brightness
+        
+        return BrightnessResult(
+            is_spike=is_spike,
+            brightness_delta=brightness_delta,
+            current_brightness=current_brightness,
+            previous_brightness=prev,
+            priority=priority
+        )
+    
+    def get_spike_timestamps(self) -> List[float]:
+        """Get list of all detected brightness spike timestamps."""
+        return self.detected_spikes.copy()
 
 
 # ============================================================================

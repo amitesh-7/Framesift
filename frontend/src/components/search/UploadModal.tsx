@@ -113,12 +113,7 @@ export function UploadModal({ open, onClose }: UploadModalProps) {
           clearInterval(pollInterval);
           setStatus("success");
           setUploading(false);
-
-          // Close modal and redirect immediately
-          handleClose();
-          if (videoId) {
-            navigate(`/search?video=${videoId}`);
-          }
+          // Don't auto-redirect - wait for user to click Done
         } else if (data.status === "failed") {
           clearInterval(pollInterval);
           setStatus("error");
@@ -300,12 +295,15 @@ export function UploadModal({ open, onClose }: UploadModalProps) {
                   </Button>
                   <Button
                     className="flex-1"
-                    onClick={handleUpload}
-                    disabled={
-                      uploading ||
-                      status === "success" ||
-                      status === "processing"
-                    }
+                    onClick={() => {
+                      if (status === "success" && videoId) {
+                        handleClose();
+                        navigate(`/search?video=${videoId}`);
+                      } else {
+                        handleUpload();
+                      }
+                    }}
+                    disabled={uploading || status === "processing"}
                   >
                     {status === "uploading" ? (
                       <>

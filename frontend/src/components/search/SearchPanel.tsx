@@ -1,4 +1,5 @@
 import { useState, FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -8,6 +9,7 @@ import {
   Loader2,
   AlertCircle,
   Zap,
+  MessageSquare,
 } from "lucide-react";
 import { Button, Input } from "@/components/ui";
 import { videoService, SearchResult } from "@/services";
@@ -28,6 +30,7 @@ export function SearchPanel({
   const [query, setQuery] = useState("");
   const [lastQuery, setLastQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [aiAnswer, setAiAnswer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deepScanOpen, setDeepScanOpen] = useState(false);
@@ -38,12 +41,14 @@ export function SearchPanel({
 
     setIsLoading(true);
     setError(null);
+    setAiAnswer(null);
 
     try {
       const trimmedQuery = query.trim();
       const data = await videoService.search(trimmedQuery, videoId, 5);
       setResults(data.results || []);
       setLastQuery(trimmedQuery);
+      setAiAnswer(data.ai_answer || null);
     } catch {
       setError("Search failed. Please try again.");
     } finally {
@@ -158,23 +163,40 @@ export function SearchPanel({
           </div>
         )}
 
-        {/* Deep Scan Modal */}
-        {videoId && (
-          <DeepScanModal
-            open={deepScanOpen}
-            onClose={() => setDeepScanOpen(false)}
-            videoId={videoId}
-            onComplete={handleDeepScanComplete}
-          />
-        )}
         {!isLoading && !error && results.length > 0 && lastQuery && (
-          <div className="mb-4 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20">
-            <p className="text-xs text-zinc-400 mb-1">Search query:</p>
-            <p className="text-sm text-white font-medium">"{lastQuery}"</p>
-            <p className="text-xs text-zinc-500 mt-1">
-              {results.length} result{results.length !== 1 ? "s" : ""} found
-            </p>
-          </div>
+          <>
+            {/* Search Query Info */}
+            <div className="mb-3 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20">
+              <p className="text-xs text-zinc-400 mb-1">Search query:</p>
+              <p className="text-sm text-white font-medium">"{lastQuery}"</p>
+              <p className="text-xs text-zinc-500 mt-1">
+                {results.length} result{results.length !== 1 ? "s" : ""} found
+              </p>
+            </div>
+
+            {/* AI Answer Card */}
+            {aiAnswer && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                    <MessageSquare className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-emerald-400 mb-1.5">
+                      AI Answer
+                    </p>
+                    <p className="text-sm text-zinc-200 leading-relaxed">
+                      {aiAnswer}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </>
         )}
 
         <AnimatePresence>
@@ -206,6 +228,18 @@ export function SearchPanel({
           </div>
         </AnimatePresence>
       </div>
+
+      {/* Deep Scan Modal - rendered via portal to escape overflow containers */}
+      {videoId &&
+        createPortal(
+          <DeepScanModal
+            open={deepScanOpen}
+            onClose={() => setDeepScanOpen(false)}
+            videoId={videoId}
+            onComplete={handleDeepScanComplete}
+          />,
+          document.body
+        )}
     </div>
   );
 }

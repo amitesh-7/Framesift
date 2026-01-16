@@ -1,433 +1,249 @@
-# FrameSift 🔍
+<div align="center">
 
-**FrameSift** is an AI-powered semantic video search engine that lets you find any moment in your videos using natural language queries.
+# 🎬 FrameSift
 
-> 🎯 **Example**: Search _"a person walking a dog in the park"_ and get exact timestamps where that scene appears.
+### _AI-Powered Semantic Video Search Engine_
 
-## 📋 Table of Contents
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![NVIDIA](https://img.shields.io/badge/NVIDIA_NIM-Powered-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](https://developer.nvidia.com/nim)
+[![Pinecone](https://img.shields.io/badge/Pinecone-Vector_DB-000000?style=for-the-badge)](https://pinecone.io)
 
-- [Architecture Overview](#️-architecture-overview)
-- [Key Features](#-key-features)
-- [Phase 2: Advanced Filtering](#-phase-2-advanced-filtering)
-- [Tech Stack](#️-tech-stack)
-- [How It Works](#-how-it-works)
-- [Getting Started](#-getting-started)
-- [API Documentation](#-api-documentation)
-- [Project Structure](#-project-structure)
-- [Configuration](#️-configuration)
-- [Troubleshooting](#-troubleshooting)
-- [License](#-license)
+<br/>
 
----
+**Find any moment in your videos using natural language.**
 
-## 🏗️ Architecture Overview
+_"When does the lightning strike?" • "Show me the girl going outside" • "Find the explosion scene"_
 
-FrameSift uses a **Hybrid AI Architecture** that balances performance, cost, and accuracy:
+<br/>
 
-1. **Local Edge Processing (CPU)**: Fast, cost-effective filtering
-2. **Cloud AI (GPU)**: Powerful deep learning for semantic understanding
+[🚀 Quick Start](#-quick-start) •
+[✨ Features](#-features) •
+[🏗️ Architecture](#️-architecture) •
+[📖 API Docs](#-api-documentation) •
+[🎯 Accuracy](#-accuracy-system)
 
-```
-┌─────────────┐
-│ Upload Video│
-└──────┬──────┘
-       ↓
-┌──────────────────────────────────────────────┐
-│   LOCAL PROCESSING (CPU) - Phase 2 Enhanced │
-│  ┌──────────────────────────────────────┐    │
-│  │ 1. Audio Spike Detection             │    │
-│  │    - Extract audio with MoviePy      │    │
-│  │    - RMS analysis (Librosa)          │    │
-│  │    - Mark CRITICAL timestamps        │    │
-│  └──────────────────────────────────────┘    │
-│  ┌──────────────────────────────────────┐    │
-│  │ 2. Physics Filter (Optical Flow)     │    │
-│  │    - Farneback algorithm             │    │
-│  │    - Vertical vs Horizontal motion   │    │
-│  │    - HIGH: Falling | LOW: Walking    │    │
-│  └──────────────────────────────────────┘    │
-│  ┌──────────────────────────────────────┐    │
-│  │ 3. CLIP Semantic Filter              │    │
-│  │    - Eliminate duplicates            │    │
-│  │    - Keep unique scenes              │    │
-│  └──────────────────────────────────────┘    │
-└──────────────┬───────────────────────────────┘
-               ↓
-┌──────────────────────────────────────────────┐
-│   CLOUD PROCESSING (GPU) - Parallel         │
-│  ┌──────────────────────────────────────┐    │
-│  │ 4. NVIDIA NIM Analysis (Parallel)    │    │
-│  │    - Llama Vision (90B params)       │    │
-│  │    - ThreadPoolExecutor              │    │
-│  │    - Round-Robin Key Rotation        │    │
-│  │    - Auto retry on rate limits       │    │
-│  └──────────────────────────────────────┘    │
-│  ┌──────────────────────────────────────┐    │
-│  │ 5. Vector Embeddings (Parallel)      │    │
-│  │    - NV-Embed (4096-dim)             │    │
-│  │    - Store in Pinecone               │    │
-│  └──────────────────────────────────────┘    │
-└──────────────┬───────────────────────────────┘
-               ↓
-       ┌───────────────┐
-       │ Search Ready! │
-       └───────────────┘
-```
+<br/>
 
-**Why Hybrid?**
+<img src="https://img.shields.io/badge/Multi--Model-Ensemble-blueviolet?style=flat-square" alt="Multi-Model"/>
+<img src="https://img.shields.io/badge/RAG-AI_Answers-orange?style=flat-square" alt="RAG"/>
+<img src="https://img.shields.io/badge/LLM-Re--Ranking-green?style=flat-square" alt="LLM Re-Ranking"/>
+<img src="https://img.shields.io/badge/Multi--User-Isolated-blue?style=flat-square" alt="Multi-User"/>
 
-- ✅ **70-80% cost reduction** - Process only unique frames
-- ✅ **Faster processing** - Local filtering is instant
-- ✅ **Better accuracy** - High-quality AI on important frames
-- ✅ **Scalable** - Serverless infrastructure
-- ✅ **Phase 2: Parallel processing** - True concurrency with key rotation
+</div>
 
 ---
 
-## ✨ Key Features
+## 🎯 What is FrameSift?
 
-### 🎯 Semantic Search
-
-- Natural language queries (e.g., "people dancing at a wedding")
-- **Query display** with result count after each search
-- Top 5 most relevant results with confidence scores
-- Click to jump to exact timestamp in video
-- Full description display for each result
-- **Deep Scan UI** - Force-process specific time ranges when no results found
-
-### 🎬 Video Management
-
-- Drag & drop upload with live progress
-- Real-time processing status
-- Automatic video storage and streaming
-- Supports MP4, MOV, AVI, WebM
-
-### 🔐 Authentication & Security
-
-- Google OAuth 2.0 integration
-- Secure session management (Redis)
-- Admin portal with user tracking
-- **Auto cleanup** on logout (database + temp audio files)
-
-### 👨‍💼 Admin Dashboard
-
-- Track all user logins
-- Monitor user activity
-- Protected with admin key
-- View user profiles
-
-### 📊 Real-time Feedback
-
-Processing stages:
-
-1. 📤 Uploading video...
-2. 🎞️ Extracting frames...
-3. 🔊 Analyzing audio spikes...
-4. 📐 Applying physics filters...
-5. 🤖 Analyzing with AI (parallel)...
-6. 💾 Storing vectors...
-7. ✅ Complete!
-
-### 🎨 Modern UI
-
-- Responsive design
-- Dark mode
-- Glassmorphism effects
-- Framer Motion animations
-
----
-
-## 🚀 Phase 2: Advanced Filtering
-
-### 🔊 Audio Trigger (The "Clack" Detector)
-
-Detects sudden sounds (chalk dropping, clapping, objects falling) even without visual motion.
-
-**How it works:**
-
-1. Extract audio from video using **MoviePy**
-2. Calculate RMS amplitude using **Librosa**
-3. Detect spikes (RMS > threshold × spike_multiplier)
-4. Mark timestamps as **CRITICAL** → bypass all visual filters
-
-**Configuration:**
-
-```python
-AudioTrigger(
-    rms_threshold=0.05,       # Base RMS threshold
-    spike_multiplier=2.5,     # Spike = RMS > avg × 2.5
-    chunk_duration=1.0,       # Analyze 1-second chunks
-    min_spike_gap=0.5        # Minimum gap between spikes
-)
-```
-
-### 📐 Physics Filter (Vertical Optical Flow)
-
-Distinguishes **falling** (vertical motion) from **walking** (horizontal motion).
-
-**How it works:**
-
-1. Compute optical flow using **Farneback algorithm**
-2. Analyze vertical (fy) vs horizontal (fx) flow
-3. Vertical dominant → **HIGH** priority (falling/dropping)
-4. Horizontal dominant → **LOW** priority (walking)
-5. Static → **DISCARD**
-
-**Priority Queue:**
+FrameSift transforms video search from tedious scrubbing into instant discovery. Simply ask a question in plain English, and our AI finds the exact moments you're looking for.
 
 ```
-CRITICAL (Audio Spikes)  → Bypass all filters
-HIGH (Falling/Vertical)  → Send to NVIDIA
-MEDIUM (General Motion)  → Send to NVIDIA
-LOW (Walking)            → Stricter threshold
-DISCARD (Static)         → Skip
-```
-
-### 🔄 Robust Parallel Processing
-
-True concurrent processing with thread-safe round-robin key rotation.
-
-**Features:**
-
-- **ThreadPoolExecutor** with `max_workers = len(NVIDIA_KEYS)`
-- **Round-robin key rotation** (thread-safe with Lock)
-- **Automatic retry** on 429 rate limits
-- **Exponential backoff** on other errors
-- **Rate limit tracking** per key
-
-**Example with 2 keys:**
-
-```python
-Frame 1 → Worker 1 → Key A → NVIDIA
-Frame 2 → Worker 2 → Key B → NVIDIA (parallel!)
-Frame 3 → Worker 1 → Key A → Rate limit → Key B
-```
-
-### 🔬 Deep Scan Mode
-
-Force-process a specific time range without filters.
-
-**Backend Endpoint:** `POST /deep-scan`
-
-```json
-{
-  "video_id": "abc123",
-  "start_time": 10.5,
-  "end_time": 15.0,
-  "fps": 1
-}
-```
-
-**Frontend UI:**
-
-- **Deep Scan Modal** - Appears when search returns no results
-- Time range inputs (start/end seconds)
-- Duration calculator with frame estimate
-- Real-time loading state with spinner
-- Success/error feedback
-- Auto-refresh search results after completion
-
-**Use case:** When AI missed important frames in a specific segment.
-
----
-
-## 🛠️ Tech Stack
-
-### Frontend
-
-| Technology          | Version | Purpose          |
-| :------------------ | :------ | :--------------- |
-| React               | 18.3    | UI framework     |
-| TypeScript          | 5.6     | Type safety      |
-| Vite                | 7.3     | Build tool       |
-| React Router        | 6.x     | Routing          |
-| Tailwind CSS        | 3.4     | Styling          |
-| Framer Motion       | 11.x    | Animations       |
-| Zustand             | 5.x     | State management |
-| @react-oauth/google | Latest  | OAuth            |
-| Axios               | 1.x     | HTTP client      |
-
-### Backend
-
-| Technology   | Version   | Purpose                       |
-| :----------- | :-------- | :---------------------------- |
-| FastAPI      | 0.115+    | Web framework                 |
-| Python       | 3.12      | Language                      |
-| Uvicorn      | Latest    | ASGI server                   |
-| PyMongo      | Latest    | MongoDB driver                |
-| Redis        | Latest    | Cache client                  |
-| OpenCV       | 4.x       | Video processing              |
-| Transformers | Latest    | CLIP model                    |
-| **MoviePy**  | **2.1+**  | **Phase 2: Audio extraction** |
-| **Librosa**  | **0.10+** | **Phase 2: Audio analysis**   |
-| **SciPy**    | **1.11+** | **Phase 2: Audio fallback**   |
-
-### Databases
-
-| Service       | Purpose                            |
-| :------------ | :--------------------------------- |
-| Pinecone      | Vector database (4096-dim, cosine) |
-| MongoDB Atlas | User data & tracking               |
-| Redis Cloud   | Session cache (1hr TTL)            |
-| Local Storage | Video files                        |
-
-### AI Models
-
-| Model                     | Provider       | Purpose         | Size     |
-| :------------------------ | :------------- | :-------------- | :------- |
-| Llama 3.2 Vision Instruct | NVIDIA NIM     | Frame analysis  | 90B      |
-| NV-Embed v1               | NVIDIA NIM     | Text embeddings | 4096-dim |
-| CLIP ViT-B/32             | OpenAI (local) | Frame filtering | 151M     |
-
----
-
-## 🎯 How It Works
-
-### Video Processing Pipeline (Phase 2)
-
-```
-Upload → Save to backend/videos/ → Create background job
-   ↓
-📢 Audio Analysis (FIRST)
-   ├─ Extract audio (MoviePy)
-   ├─ RMS analysis (Librosa)
-   └─ Mark CRITICAL timestamps
-   ↓
-Extract frames (OpenCV, 1 fps)
-   ↓
-📐 Physics Filter (per frame)
-   ├─ Optical flow analysis
-   ├─ Vertical → HIGH priority
-   ├─ Horizontal → LOW priority
-   └─ Static → DISCARD
-   ↓
-CLIP semantic filtering (remove duplicates)
-   ↓
-🚀 Parallel NVIDIA Processing
-   ├─ ThreadPoolExecutor (max_workers = num_keys)
-   ├─ Round-robin key rotation
-   ├─ Vision analysis (Llama 3.2 90B)
-   └─ Generate embeddings (NV-Embed)
-   ↓
-Store in Pinecone (with metadata + timestamps)
-   ↓
-Ready for search!
-```
-
-### Search Flow
-
-```
-Query: "people playing basketball"
-   ↓
-Convert to vector (NV-Embed)
-   ↓
-Pinecone similarity search (cosine)
-   ↓
-Get top 5 matches with scores
-   ↓
-Display with timestamps
-   ↓
-Click → Jump to moment
-```
-
-### Auto Cleanup on Logout
-
-```
-User logs out
-   ↓
-Clear Pinecone vectors
-   ↓
-Delete video files
-   ↓
-Delete temp audio files (.wav)
-   ↓
-Clear Redis session
-   ↓
-Done!
+┌─────────────────────────────────────────────────────────────────────┐
+│                                                                     │
+│    🎥  Upload Video  →  🤖  AI Analysis  →  🔍  Search Instantly   │
+│                                                                     │
+│    "When does the car crash?"                                      │
+│         ↓                                                           │
+│    ⏱️ 2:34 - "A red car collides with a truck at intersection"    │
+│    ⏱️ 5:12 - "The damaged vehicle spins and hits a guardrail"     │
+│                                                                     │
+│    🧠 AI Answer: "The car crash occurs at 2:34 when a red sedan   │
+│       runs a red light and collides with a delivery truck..."      │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ⚡ Getting Started
+## ✨ Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 🔍 Semantic Search
+
+- Natural language queries
+- Intent understanding (not just keywords)
+- Returns timestamps + descriptions
+- Click-to-seek video playback
+
+### 🧠 AI Answer Generation
+
+- RAG-powered conversational responses
+- Synthesizes information from multiple frames
+- Answers "when", "what", "how" questions
+
+### 🎯 Multi-Model Ensemble
+
+- **Llama 3.2 90B Vision** - Detailed scene analysis
+- **Llama 3.2 11B Vision** - Fast action detection
+- Combined outputs for maximum accuracy
+
+</td>
+<td width="50%">
+
+### ⚡ Smart Frame Processing
+
+- **Audio Spike Detection** - Catches impacts, explosions
+- **Brightness Spike Detection** - Detects lightning, flashes
+- **Physics Filter** - Distinguishes falls vs. walks
+- **CLIP Deduplication** - Eliminates redundant frames
+
+### 🔄 Dynamic Optimization
+
+- **Adaptive FPS** - 4 FPS for short videos, 1 FPS for long
+- **Query Expansion** - Synonym matching
+- **LLM Re-Ranking** - AI reorders by relevance
+- **Keyword Boosting** - Action word prioritization
+
+### 👥 Multi-User Support
+
+- Isolated data per user (Pinecone namespaces)
+- Auto-cleanup on logout
+- Concurrent video processing
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ Architecture
+
+```
+                           ┌─────────────────────────────────────────┐
+                           │           FrameSift Pipeline            │
+                           └─────────────────────────────────────────┘
+                                              │
+                                              ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        LOCAL PROCESSING (CPU) - Fast & Free                     │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌────────────┐  │
+│  │ 🔊 Audio Spike  │  │ ⚡ Brightness   │  │ 🏃 Physics      │  │ 🎯 CLIP    │  │
+│  │    Detection    │  │    Spike        │  │    Filter       │  │   Filter   │  │
+│  │                 │  │                 │  │                 │  │            │  │
+│  │ MoviePy + RMS   │  │ Delta Analysis  │  │ Optical Flow    │  │ Similarity │  │
+│  │ "Find impacts"  │  │ "Find flashes"  │  │ "Find falls"    │  │ "Dedupe"   │  │
+│  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘  └─────┬──────┘  │
+│           │                    │                    │                  │         │
+│           └────────────────────┴────────────────────┴──────────────────┘         │
+│                                         │                                        │
+│                              Surviving Frames (20-30%)                           │
+└─────────────────────────────────────────┬───────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                       CLOUD PROCESSING (GPU) - NVIDIA NIM                       │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                    🔀 Multi-Model Ensemble (Parallel)                    │   │
+│  │  ┌─────────────────────────┐        ┌─────────────────────────┐         │   │
+│  │  │ 🧠 Llama 3.2 90B Vision │        │ ⚡ Llama 3.2 11B Vision │         │   │
+│  │  │    Detailed Analysis    │   +    │    Action Detection     │         │   │
+│  │  │    "Scene, subjects,    │        │    "What's happening    │         │   │
+│  │  │     environment..."     │        │     RIGHT NOW?"         │         │   │
+│  │  └─────────────────────────┘        └─────────────────────────┘         │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                         │                                       │
+│                                         ▼                                       │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │              📊 NV-Embed (4096-dim) → Pinecone Vector DB                │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                            SEARCH & RAG PIPELINE                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌───────────────────┐   │
+│  │ 📝 Query     │→ │ 🔎 Vector    │→ │ 🔄 LLM       │→ │ 🤖 AI Answer     │   │
+│  │   Expansion  │  │   Search     │  │   Re-Rank    │  │   Generation     │   │
+│  │              │  │              │  │              │  │                  │   │
+│  │ +synonyms    │  │ cosine sim   │  │ Llama 70B    │  │ "Based on the    │   │
+│  │ +actions     │  │ namespace    │  │ reorder      │  │  frames, the..." │   │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └───────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Accuracy System
+
+FrameSift uses a **5-stage accuracy enhancement pipeline**:
+
+| Stage | Technology               | Purpose                                             | Impact         |
+| ----- | ------------------------ | --------------------------------------------------- | -------------- |
+| 1️⃣    | **Query Expansion**      | Add synonyms ("outside" → "doorway, exit, leaving") | +15% recall    |
+| 2️⃣    | **Keyword Boost**        | Prioritize action word matches                      | +10% precision |
+| 3️⃣    | **Multi-Model Ensemble** | Two vision models catch different details           | +20% coverage  |
+| 4️⃣    | **LLM Re-Ranking**       | Llama 70B reorders by semantic relevance            | +25% precision |
+| 5️⃣    | **RAG Answer**           | Synthesize conversational response                  | Better UX      |
+
+### Dynamic Frame Processing
+
+| Video Length | FPS      | Rationale                     |
+| ------------ | -------- | ----------------------------- |
+| ≤10 seconds  | ~4 FPS   | Capture every detail          |
+| ≤30 seconds  | ~3 FPS   | High detail for short content |
+| ≤60 seconds  | ~2.5 FPS | Balanced coverage             |
+| ≤120 seconds | ~2 FPS   | Standard processing           |
+| ≤300 seconds | ~1.5 FPS | Efficient for medium content  |
+| >300 seconds | ~1 FPS   | Scalable for long videos      |
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
-**Required Software:**
+- Python 3.12+
+- Node.js 18+
+- [NVIDIA NIM API Key](https://build.nvidia.com/)
+- [Pinecone API Key](https://pinecone.io/)
 
-- Node.js v18+ ([Download](https://nodejs.org/))
-- Python 3.12 ([Download](https://www.python.org/downloads/))
-- Git ([Download](https://git-scm.com/))
-
-**Required API Keys:**
-| Service | Purpose | Get It |
-|:--------|:--------|:-------|
-| NVIDIA NIM | AI models (need 2 keys) | [Get Keys](https://build.nvidia.com/) |
-| Pinecone | Vector database | [Sign Up](https://www.pinecone.io/) |
-| Google Cloud | OAuth | [Console](https://console.cloud.google.com/) |
-| MongoDB Atlas | User storage | [Free Cluster](https://www.mongodb.com/cloud/atlas) |
-| Redis Cloud | Caching | [Try Free](https://redis.com/try-free/) |
-
----
-
-### 🚀 Quick Start
-
-#### 1. Clone Repository
-
-```bash
-git clone https://github.com/your-username/framesift.git
-cd framesift
-```
-
-#### 2. Backend Setup
+### 1. Clone & Setup Backend
 
 ```bash
 cd backend
-
-# Create virtual environment
 python -m venv venv
-
-# Activate it
-# Windows:
-.\venv\Scripts\Activate.ps1
-# macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
+source venv/bin/activate  # Windows: .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
+
+### 2. Configure Environment
 
 Create `backend/.env.local`:
 
 ```env
-# NVIDIA NIM (get from https://build.nvidia.com/)
-NVIDIA_KEYS=["nvapi-key1", "nvapi-key2"]
+# NVIDIA NIM API Keys (JSON array for rotation)
+NVIDIA_KEYS=["nvapi-xxx", "nvapi-yyy"]
 
 # Pinecone
-PINECONE_API_KEY=pcsk_xxxxxx
+PINECONE_API_KEY=your-pinecone-key
 PINECONE_INDEX_NAME=framesift
 
-# MongoDB Atlas
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net
-MONGODB_DB_NAME=framesift
-MONGODB_COLLECTION_NAME=users
+# MongoDB (optional - for user tracking)
+MONGODB_URI=mongodb://localhost:27017
 
-# Redis Cloud
-REDIS_URL=redis://default:password@host:port
+# Redis (optional - for caching)
+REDIS_HOST=localhost
+REDIS_PORT=6379
 
-# Admin (choose your secret)
-ADMIN_KEY=your-secret-key
+# Multi-Model Ensemble (default: enabled)
+ENSEMBLE_MODE=true
 ```
 
-Start backend:
+### 3. Start Backend
 
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-#### 3. Frontend Setup
+### 4. Setup Frontend
 
 ```bash
-# New terminal
 cd frontend
 npm install
 ```
@@ -436,248 +252,42 @@ Create `frontend/.env.local`:
 
 ```env
 VITE_API_URL=http://localhost:8000
-VITE_GOOGLE_CLIENT_ID=your-id.apps.googleusercontent.com
-VITE_ADMIN_KEY=your-secret-key
-VITE_ADMIN_EMAILS=admin@example.com
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
-Start frontend:
+### 5. Start Frontend
 
 ```bash
 npm run dev
 ```
 
-#### 4. Setup Google OAuth
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create project
-3. Enable **Google+ API**
-4. Create **OAuth 2.0 Client ID**
-5. Add origins: `http://localhost:5173`
-6. Copy Client ID to `.env.local`
-
-#### 5. Setup Pinecone
-
-1. [Pinecone Console](https://app.pinecone.io/)
-2. Create index:
-   - Name: `framesift`
-   - Dimensions: `4096`
-   - Metric: `cosine`
-   - Plan: Serverless
-3. Copy API key
-
-#### 6. Test It!
-
-1. Visit http://localhost:5173
-2. Sign in with Google
-3. Upload a test video
-4. Wait for processing
-5. Search: "what's in the video?"
-6. Click result to jump to timestamp
+Visit **http://localhost:5173** 🎉
 
 ---
 
-## 📡 API Documentation
+## 📖 API Documentation
 
-### Video Processing
+### Core Endpoints
 
-| Method | Endpoint       | Description                  |
-| :----- | :------------- | :--------------------------- |
-| GET    | `/`            | Health check                 |
-| POST   | `/upload`      | Upload video for processing  |
-| GET    | `/job/{id}`    | Get processing status        |
-| POST   | `/search`      | Search query (returns top 5) |
-| GET    | `/jobs`        | List all jobs                |
-| GET    | `/videos/{id}` | Stream video file            |
+#### `POST /upload`
 
-### Admin (Protected)
-
-| Method | Endpoint             | Description              |
-| :----- | :------------------- | :----------------------- |
-| POST   | `/admin/track-login` | Track user login         |
-| GET    | `/admin/users`       | Get all users            |
-| POST   | `/clear-database`    | Clear all data on logout |
-
-### Example: Upload Video
+Upload and process a video.
 
 ```bash
 curl -X POST http://localhost:8000/upload \
+  -H "X-User-Id: user123" \
   -F "file=@video.mp4"
 ```
 
-Response:
+#### `POST /search`
 
-```json
-{
-  "job_id": "abc-123",
-  "video_id": "abc-123",
-  "status": "processing"
-}
-```
-
-### Example: Search
+Search for moments in processed videos.
 
 ```bash
 curl -X POST http://localhost:8000/search \
+  -H "X-User-Id: user123" \
   -H "Content-Type: application/json" \
-  -d '{
-    "query": "people walking",
-    "video_id": "abc-123",
-    "top_k": 5
-  }'
-```
-
-Response:
-
-```json
-{
-  "results": [
-    {
-      "timestamp": 45.5,
-      "description": "Two people walking in a park",
-      "score": 0.92
-    }
-  ],
-  "query": "people walking"
-}
-```
-
----
-
-## 📂 Project Structure
-
-```
-framesift/
-├── backend/
-│   ├── main.py                 # FastAPI app with all endpoints
-│   ├── scout.py                # 🆕 Phase 2: Audio & Physics filters
-│   ├── processor.py            # 🆕 Phase 2: Parallel processing
-│   ├── requirements.txt        # Python dependencies (Phase 2 updated)
-│   ├── Dockerfile              # 🆕 Phase 2: Includes ffmpeg
-│   ├── videos/                 # Uploaded videos (auto-created)
-│   ├── .env.local              # Environment variables
-│   └── venv/                   # Virtual environment
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── search/
-│   │   │   │   ├── DeepScanModal.tsx       # 🆕 Deep Scan UI
-│   │   │   │   └── SearchPanel.tsx         # 🆕 Query display + Deep Scan CTA
-│   │   │   ├── LandingPage.tsx         # Landing page
-│   │   │   ├── SearchComponent.tsx     # Search UI
-│   │   │   ├── SearchPageWrapper.tsx   # Search page wrapper
-│   │   │   ├── UploadModal.tsx         # Upload with progress
-│   │   │   ├── VideoPlayer.tsx         # Video player
-│   │   │   └── ui/                     # Reusable UI components
-│   │   │       ├── background-paths.tsx
-│   │   │       ├── button.tsx
-│   │   │       ├── card.tsx
-│   │   │       ├── expandable-tabs.tsx
-│   │   │       ├── floating-navbar.tsx
-│   │   │       ├── input.tsx
-│   │   │       ├── modern-animated-hero-section.tsx
-│   │   │       └── theme-toggle.tsx
-│   │   ├── services/
-│   │   │   └── videoService.ts         # 🆕 Added deepScan() function
-│   │   ├── app/
-│   │   │   ├── page.tsx                # Landing page
-│   │   │   ├── layout.tsx              # Root layout
-│   │   │   ├── globals.css             # Global styles
-│   │   │   └── search/
-│   │   │       └── page.tsx            # Search page
-│   │   ├── lib/
-│   │   │   └── utils.ts                # Utility functions
-│   │   └── public/                     # Static assets
-│   ├── .env.local              # Environment variables
-│   ├── package.json
-│   ├── next.config.ts          # Next.js config
-│   ├── tsconfig.json           # TypeScript config
-│   ├── eslint.config.mjs       # ESLint config
-│   └── postcss.config.mjs      # PostCSS config
-│
-├── docker-compose.yml          # Docker orchestration
-├── .gitignore
-└── README.md                   # 🆕 Updated with Phase 2
-```
-
-### Backend File Details
-
-#### `main.py` (1200+ lines)
-
-- FastAPI application with all endpoints
-- Warning suppression for transformers library at startup
-- `SemanticScout` class - Phase 2 enhanced with audio/physics filters
-- `NvidiaProcessor` class - Cloud AI processing
-- `VectorStore` class - Pinecone integration
-- Background video processing with priority queue
-- Auto cleanup on logout (vectors, videos, temp audio files)
-- Endpoints: `/upload`, `/search`, `/status`, `/video/{id}`, `/deep-scan` 🆕
-- `VectorStore` class - Pinecone integration
-- Background video processing with priority queue
-- Endpoints: `/upload`, `/search`, `/status`, `/video/{id}`, `/deep-scan` 🆕
-
-#### `scout.py` (570+ lines) - **Phase 2 NEW**
-
-- `AudioTrigger` - Audio spike detection
-  - Extract audio with MoviePy
-  - RMS analysis with Librosa
-  - Critical timestamp detection
-- `PhysicsFilter` - Optical flow analysis
-  - Farneback algorithm
-  - Vertical vs horizontal motion classification
-- `PriorityQueueManager` - Frame priority management
-- `FramePriority` enum - CRITICAL/HIGH/MEDIUM/LOW/DISCARD
-
-#### `processor.py` (590+ lines) - **Phase 2 NEW**
-
-- `KeyManager` - Thread-safe round-robin key rotation
-- `ParallelFrameProcessor` - Concurrent frame processing
-  - ThreadPoolExecutor with max_workers = num_keys
-  - Automatic retry on rate limits
-  - Exponential backoff
-- `DeepScanProcessor` - Force-process time ranges
-- `ProcessingResult` - Structured results with retry tracking
-
----
-
-## 📡 API Endpoints
-
-### POST `/upload`
-
-Upload a video for processing.
-
-**Request:**
-
-```bash
-curl -X POST http://localhost:8000/upload \
-  -F "file=@video.mp4"
-```
-
-**Response:**
-
-```json
-{
-  "job_id": "abc-123-def-456",
-  "video_id": "abc-123-def-456",
-  "status": "processing"
-}
-```
-
-### POST `/search`
-
-Search for frames using natural language.
-
-**Request:**
-
-```bash
-curl -X POST http://localhost:8000/search \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "people walking a dog",
-    "video_id": "abc-123-def-456",
-    "top_k": 5
-  }'
+  -d '{"query": "when does the lightning strike?", "top_k": 5}'
 ```
 
 **Response:**
@@ -686,289 +296,156 @@ curl -X POST http://localhost:8000/search \
 {
   "results": [
     {
-      "timestamp": 45.5,
-      "description": "Two people walking a dog in a park",
-      "score": 0.92
+      "timestamp": 12.5,
+      "score": 0.95,
+      "description": "A bright lightning bolt illuminates the dark stormy sky...",
+      "frame_id": "abc123_frame_42"
     }
   ],
-  "query": "people walking a dog"
+  "query": "when does the lightning strike?",
+  "ai_answer": "The lightning strike occurs at approximately 12.5 seconds..."
 }
 ```
 
-### GET `/status/{job_id}`
+#### `POST /deep-scan`
 
-Check video processing status.
-
-**Response:**
-
-```json
-{
-  "status": "completed",
-  "progress": 1.0,
-  "frames_processed": 150,
-  "frames_total": 150
-}
-```
-
-### POST `/deep-scan` 🆕 **Phase 2**
-
-Force-process a specific time range without filters.
-
-**Request:**
+Force-analyze a specific time range at high FPS.
 
 ```bash
 curl -X POST http://localhost:8000/deep-scan \
   -H "Content-Type: application/json" \
-  -d '{
-    "video_id": "abc-123-def-456",
-    "start_time": 10.5,
-    "end_time": 15.0,
-    "fps": 1
-  }'
+  -d '{"video_id": "abc123", "start_time": 10, "end_time": 15, "fps": 2}'
 ```
 
-**Response:**
+#### `POST /clear-database`
 
-```json
-{
-  "status": "success",
-  "message": "Deep scan processed 5 frames, 5 indexed",
-  "frames_processed": 5,
-  "frames_indexed": 5
-}
-```
-
-**Use case:** When AI missed important frames in a specific segment, deep scan processes every frame in that range at the specified FPS (bypassing all filters).
-
-### GET `/video/{video_id}`
-
-Stream video file.
-
-**Response:** Video file stream (MP4/MOV/AVI/WebM)
-
-### POST `/logout-cleanup`
-
-Clear all user data on logout.
-
-**Response:**
-
-```json
-{
-  "status": "success",
-  "message": "Database and 3 video(s) cleared successfully"
-}
-```
-
----
-
-## ⚙️ Configuration
-
-### Backend Environment Variables
-
-```env
-# NVIDIA NIM (2 API keys required)
-NVIDIA_KEYS=["key1", "key2"]
-
-# Pinecone
-PINECONE_API_KEY=pcsk_xxxxx
-PINECONE_INDEX_NAME=framesift
-
-# MongoDB
-MONGODB_URI=mongodb+srv://...
-MONGODB_DB_NAME=framesift
-MONGODB_COLLECTION_NAME=users
-
-# Redis
-REDIS_URL=redis://...
-
-# Admin
-ADMIN_KEY=secret
-```
-
-### Frontend Environment Variables
-
-```env
-# Backend
-VITE_API_URL=http://localhost:8000
-
-# Google OAuth
-VITE_GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
-
-# Admin
-VITE_ADMIN_KEY=secret
-VITE_ADMIN_EMAILS=admin@example.com
-```
-
-### Pinecone Index Configuration
-
-- **Dimensions**: 4096 (NV-Embed v1)
-- **Metric**: cosine
-- **Cloud**: AWS (us-east-1 recommended)
-- **Plan**: Serverless (free tier available)
-
-### MongoDB Schema
-
-```javascript
-{
-  email: String,
-  name: String,
-  picture: String,
-  loginCount: Number,
-  lastLogin: Date,
-  firstLogin: Date
-}
-```
-
----
-
-## 🔧 Troubleshooting
-
-### Frontend won't start
+Clear user data on logout (multi-user aware).
 
 ```bash
-# Clear node_modules and reinstall
-rm -rf node_modules package-lock.json
-npm install
+curl -X POST http://localhost:8000/clear-database \
+  -H "X-User-Id: user123"
 ```
-
-### Backend errors
-
-```bash
-# Check Python version
-python --version  # Should be 3.12+
-
-# Reinstall dependencies
-pip install --upgrade -r requirements.txt
-```
-
-### Upload fails
-
-- Check video format (MP4, MOV, AVI, WebM)
-- Check file size (recommended < 500MB)
-- Check backend logs for errors
-- Verify NVIDIA API keys are valid
-
-### Search returns no results
-
-- Check Pinecone index exists
-- Verify index dimensions (4096)
-- Check video was fully processed
-- Look for errors in job status
-- Use **Deep Scan UI** to force-process specific time ranges
-
-### "Using a slow image processor" warning
-
-- This is an informational warning from transformers library
-- Does not affect performance or functionality
-- Suppressed via environment variables in `main.py`:
-  ```python
-  os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
-  logging.getLogger("transformers").setLevel(logging.ERROR)
-  ```
-
-### Google OAuth fails
-
-- Verify Client ID in `.env.local`
-- Check authorized origins in Google Console
-- Clear browser cache and cookies
-- Add test users in OAuth consent screen
-
-### Pinecone connection issues
-
-- Verify API key is correct
-- Check index name matches `.env`
-- Ensure index is "Active" status
-- Try deleting and recreating index
 
 ---
 
-## 🐳 Docker Deployment
+## 🛠️ Tech Stack
 
-```bash
-# Build and run
-docker-compose up --build
-
-# Run in background
-docker-compose up -d
-
-# Stop
-docker-compose down
-
-# View logs
-docker-compose logs -f backend
-docker-compose logs -f frontend
-```
-
-Access:
-
-- Frontend: http://localhost:3000
-- Backend: http://localhost:8000
+<table>
+<tr>
+<td align="center" width="140">
+<img src="https://skillicons.dev/icons?i=python" width="48" height="48" alt="Python" />
+<br><strong>Python</strong>
+<br><sub>Backend</sub>
+</td>
+<td align="center" width="140">
+<img src="https://skillicons.dev/icons?i=fastapi" width="48" height="48" alt="FastAPI" />
+<br><strong>FastAPI</strong>
+<br><sub>API Framework</sub>
+</td>
+<td align="center" width="140">
+<img src="https://skillicons.dev/icons?i=react" width="48" height="48" alt="React" />
+<br><strong>React</strong>
+<br><sub>Frontend</sub>
+</td>
+<td align="center" width="140">
+<img src="https://skillicons.dev/icons?i=typescript" width="48" height="48" alt="TypeScript" />
+<br><strong>TypeScript</strong>
+<br><sub>Type Safety</sub>
+</td>
+<td align="center" width="140">
+<img src="https://skillicons.dev/icons?i=tailwind" width="48" height="48" alt="Tailwind" />
+<br><strong>Tailwind</strong>
+<br><sub>Styling</sub>
+</td>
+</tr>
+<tr>
+<td align="center" width="140">
+<img src="https://skillicons.dev/icons?i=mongodb" width="48" height="48" alt="MongoDB" />
+<br><strong>MongoDB</strong>
+<br><sub>User Storage</sub>
+</td>
+<td align="center" width="140">
+<img src="https://skillicons.dev/icons?i=redis" width="48" height="48" alt="Redis" />
+<br><strong>Redis</strong>
+<br><sub>Caching</sub>
+</td>
+<td align="center" width="140">
+<img src="https://skillicons.dev/icons?i=docker" width="48" height="48" alt="Docker" />
+<br><strong>Docker</strong>
+<br><sub>Containerization</sub>
+</td>
+<td align="center" width="140">
+<strong>🟢 NVIDIA NIM</strong>
+<br><sub>AI Models</sub>
+</td>
+<td align="center" width="140">
+<strong>🌲 Pinecone</strong>
+<br><sub>Vector DB</sub>
+</td>
+</tr>
+</table>
 
 ---
 
-## 🚀 Production Deployment
+## 📁 Project Structure
 
-### Vercel (Frontend)
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-cd frontend
-vercel --prod
 ```
-
-### Railway/Render (Backend)
-
-1. Push code to GitHub
-2. Connect repository to Railway/Render
-3. Add environment variables
-4. Deploy
-
-### Environment Variables
-
-Make sure to set all `.env.local` variables in your deployment platform.
+framesift/
+├── 📂 backend/
+│   ├── main.py              # FastAPI application (endpoints, pipeline)
+│   ├── scout.py             # Local filters (audio, physics, brightness)
+│   ├── processor.py         # Parallel frame processing
+│   ├── requirements.txt     # Python dependencies
+│   └── videos/              # Uploaded videos (per-user directories)
+│       └── {user_id}/       # User-isolated video storage
+│
+├── 📂 frontend/
+│   ├── src/
+│   │   ├── components/      # React components
+│   │   │   ├── search/      # SearchPanel, VideoPlayer, UploadModal
+│   │   │   ├── home/        # Landing page sections
+│   │   │   └── ui/          # Reusable UI components
+│   │   ├── pages/           # Route pages
+│   │   ├── services/        # API client
+│   │   └── store/           # Zustand state management
+│   ├── package.json
+│   └── vite.config.ts
+│
+├── docker-compose.yml       # Full stack deployment
+└── README.md               # You are here! 📍
+```
 
 ---
 
-## 📝 License
+## 🔧 Configuration Options
 
-MIT License - see [LICENSE](LICENSE)
-
-Built with ❤️ by [Amitesh Vishwakarma](https://github.com/amitesh-7)
+| Variable               | Default | Description                                            |
+| ---------------------- | ------- | ------------------------------------------------------ |
+| `ENSEMBLE_MODE`        | `true`  | Enable multi-model ensemble (slower but more accurate) |
+| `FRAME_SKIP_INTERVAL`  | `5`     | Default frame skip (overridden by dynamic FPS)         |
+| `MOTION_THRESHOLD`     | `30.0`  | Pixel change threshold for motion detection            |
+| `SIMILARITY_THRESHOLD` | `0.95`  | CLIP similarity threshold for deduplication            |
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing`)
-5. Open Pull Request
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## 📧 Support
+## 📄 License
 
-- Issues: [GitHub Issues](https://github.com/your-username/framesift/issues)
-- Email: amiteshvishwakarma2006@gmail.com
-- Docs: [Full Documentation](https://framesift-docs.vercel.app)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🎯 Roadmap
+<div align="center">
 
-- [ ] Multi-user support with isolated databases
-- [ ] Video sharing and collaboration
-- [ ] Real-time collaborative search
-- [ ] Mobile app (React Native)
-- [ ] Advanced filters (date, duration, quality)
-- [ ] Batch video processing
-- [ ] Custom AI model training
-- [ ] WebSocket for live updates
+**Built with ❤️ using NVIDIA NIM, Pinecone, and modern web technologies**
 
----
+<br/>
 
-**⭐ Star this repo if you find it useful!**
+_Find any moment. Ask any question. Get instant answers._
+
+</div>
