@@ -4,10 +4,7 @@ emoji: 🎬
 colorFrom: purple
 colorTo: pink
 sdk: docker
-sdk_version: "4.40.0"
-app_port: 7860
 pinned: false
-license: mit
 ---
 
 # 🎬 FrameSift Backend API
