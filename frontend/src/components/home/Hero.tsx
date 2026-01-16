@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Play, Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { Button } from "@/components/ui";
 import { useAuthStore } from "@/store";

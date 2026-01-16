@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Play, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { Button } from "@/components/ui";
 import { useAuthStore } from "@/store";
