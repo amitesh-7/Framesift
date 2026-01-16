@@ -65,12 +65,14 @@ USER framesift
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Expose port
+# Expose port (Hugging Face Spaces uses 7860, but we'll support both)
+EXPOSE 7860
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/')" || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:7860/')" || exit 1
 
-# Start the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start the application on port 7860 for Hugging Face Spaces
+# Can be overridden with PORT env variable for other platforms
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-7860}
