@@ -6,7 +6,7 @@ FROM python:3.11-slim as builder
 # Install build dependencies including ffmpeg for Phase 2 audio processing
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     ffmpeg \
     libsndfile1 \
@@ -34,7 +34,7 @@ FROM python:3.11-slim
 
 # Install runtime dependencies only (including ffmpeg for Phase 2 audio)
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     ffmpeg \
     libsndfile1 \
