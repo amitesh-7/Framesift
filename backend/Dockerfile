@@ -18,9 +18,9 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies with retry logic
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir --retries 5 --timeout 300 -r requirements.txt
 
 # CRITICAL: Pre-download the CLIP model during build
 # This eliminates cold start delays in production
