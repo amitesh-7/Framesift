@@ -1378,6 +1378,11 @@ async def root():
         "version": "1.0.0"
     }
 
+@app.get("/health")
+async def health():
+    """Render health check endpoint."""
+    return {"status": "healthy"}
+
 @app.post("/upload", response_model=UploadResponse)
 async def upload_video(
     background_tasks: BackgroundTasks,
