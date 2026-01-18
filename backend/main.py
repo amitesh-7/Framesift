@@ -1252,6 +1252,10 @@ class VectorStore:
                 print("🗑️ Cleared all vectors from Pinecone")
             return True
         except Exception as e:
+            # Handle 404 gracefully - namespace doesn't exist (already empty)
+            if "404" in str(e) or "Not Found" in str(e) or "Namespace not found" in str(e):
+                print(f"✅ Namespace already empty for user: {user_id if user_id else 'default'}")
+                return True
             print(f"❌ Failed to clear Pinecone: {e}")
             return False
     
