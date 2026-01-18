@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <div align="center">
 
 # 🎬 FrameSift
@@ -262,7 +261,52 @@ VITE_GOOGLE_CLIENT_ID=your-google-client-id
 npm run dev
 ```
 
-Visit **http://localhost:5173** 🎉
+Visit **http://localhost:3000** 🎉
+
+---
+
+## 🚀 Deployment
+
+### Production URLs
+
+- **Frontend**: https://framesift.vercel.app
+- **Backend**: https://framesift.onrender.com
+
+### Deploy Backend (Render)
+
+1. Create account at [Render.com](https://render.com)
+2. Connect GitHub repository
+3. Configure:
+   - **Environment**: Docker
+   - **Instance Type**: Standard (2GB RAM recommended)
+   - **Root Directory**: `backend`
+4. Add environment variables (same as `.env.local`)
+5. Deploy automatically from GitHub
+
+### Deploy Frontend (Vercel)
+
+1. Install Vercel CLI: `npm i -g vercel`
+2. Deploy: `cd frontend && vercel --prod`
+3. Add environment variables:
+   - `VITE_API_URL`: `https://framesift.onrender.com`
+   - `VITE_GOOGLE_CLIENT_ID`: Your Google OAuth Client ID
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
+
+---
+
+## 🔐 Google OAuth Setup
+
+For production deployment:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Create OAuth 2.0 Client ID
+3. Add authorized origins:
+   - `https://framesift.vercel.app`
+   - `https://*.vercel.app`
+4. Add redirect URIs:
+   - `https://framesift.vercel.app`
+   - `https://*.vercel.app`
 
 ---
 
@@ -393,27 +437,36 @@ curl -X POST http://localhost:8000/clear-database \
 ```
 framesift/
 ├── 📂 backend/
-│   ├── main.py              # FastAPI application (endpoints, pipeline)
+│   ├── main.py              # FastAPI application (endpoints, RAG pipeline)
 │   ├── scout.py             # Local filters (audio, physics, brightness)
 │   ├── processor.py         # Parallel frame processing
 │   ├── requirements.txt     # Python dependencies
+│   ├── Dockerfile           # Production container
+│   ├── .env.local           # Development environment
+│   ├── .env.production      # Production environment template
 │   └── videos/              # Uploaded videos (per-user directories)
 │       └── {user_id}/       # User-isolated video storage
 │
 ├── 📂 frontend/
 │   ├── src/
-│   │   ├── components/      # React components
-│   │   │   ├── search/      # SearchPanel, VideoPlayer, UploadModal
-│   │   │   ├── home/        # Landing page sections
+│   │   ├── components/
+│   │   │   ├── home/        # Landing page (Hero, CTA, Features)
+│   │   │   ├── search/      # Search page (UploadModal, SearchPanel, VideoPlayer)
 │   │   │   └── ui/          # Reusable UI components
-│   │   ├── pages/           # Route pages
-│   │   ├── services/        # API client
-│   │   └── store/           # Zustand state management
+│   │   ├── pages/           # Route pages (Home, Search)
+│   │   ├── services/        # API client (axios with X-User-Id)
+│   │   ├── store/           # State management (Zustand for auth)
+│   │   └── lib/             # Utilities
+│   ├── public/
 │   ├── package.json
-│   └── vite.config.ts
+│   ├── vite.config.ts
+│   ├── .env.local           # Development environment
+│   ├── .env.production      # Production environment
+│   └── vercel.json          # Vercel deployment config
 │
-├── docker-compose.yml       # Full stack deployment
-└── README.md               # You are here! 📍
+├── docker-compose.yml       # Local development stack
+├── DEPLOYMENT.md            # Detailed deployment guide
+└── README.md                # You are here! 📍
 ```
 
 ---
@@ -443,6 +496,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
+**🌐 Live Demo**: [framesift.vercel.app](https://framesift.vercel.app)
+
 **Built with ❤️ using NVIDIA NIM, Pinecone, and modern web technologies**
 
 <br/>
@@ -450,15 +505,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 _Find any moment. Ask any question. Get instant answers._
 
 </div>
-=======
----
-title: Framesift Backend
-emoji: 🐨
-colorFrom: green
-colorTo: pink
-sdk: docker
-pinned: false
----
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
->>>>>>> 8e4f8f7953c40ac0378478a264d05b75f89aed29
