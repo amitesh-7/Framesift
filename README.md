@@ -45,13 +45,13 @@ FrameSift transforms video search from tedious scrubbing into instant discovery.
 │                                                                     │
 │    🎥  Upload Video  →  🤖  AI Analysis  →  🔍  Search Instantly   │
 │                                                                     │
-│    "When does the car crash?"                                      │
+│    "When does the car crash?"                                       │
 │         ↓                                                           │
-│    ⏱️ 2:34 - "A red car collides with a truck at intersection"    │
-│    ⏱️ 5:12 - "The damaged vehicle spins and hits a guardrail"     │
+│    ⏱️ 2:34 - "A red car collides with a truck at intersection"      │
+│    ⏱️ 5:12 - "The damaged vehicle spins and hits a guardrail"       │
 │                                                                     │
-│    🧠 AI Answer: "The car crash occurs at 2:34 when a red sedan   │
-│       runs a red light and collides with a delivery truck..."      │
+│    🧠 AI Answer: "The car crash occurs at 2:34 when a red sedan     │
+│       runs a red light and collides with a delivery truck..."       │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
