@@ -443,16 +443,10 @@ class ParallelFrameProcessor:
                     
                     completed += 1
                     
-                    if result.success:
-                        print(f"  ✓ Frame at {result.timestamp:.2f}s (retries: {result.retries})")
-                    else:
-                        print(f"  ✗ Frame at {result.timestamp:.2f}s failed: {result.error}")
-                    
                     if progress_callback:
                         progress_callback(completed, len(frames), result.frame_id)
                         
                 except Exception as e:
-                    print(f"  ❌ Frame at {frame['timestamp']:.2f}s exception: {e}")
                     results.append(ProcessingResult(
                         success=False,
                         frame_id=frame['frame_id'],
@@ -466,10 +460,7 @@ class ParallelFrameProcessor:
         
         # Print stats
         successful = sum(1 for r in results if r.success)
-        total_retries = sum(r.retries for r in results)
         print(f"✅ Parallel processing complete: {successful}/{len(results)} successful")
-        print(f"   Total retries: {total_retries}")
-        print(f"   Key usage: {self.key_manager.get_stats()}")
         
         return results
     

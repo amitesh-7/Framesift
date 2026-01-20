@@ -198,8 +198,6 @@ class AudioTrigger:
             avg_rms + 2 * std_rms
         )
         
-        print(f"  📊 Audio stats: avg_rms={avg_rms:.4f}, spike_threshold={spike_threshold:.4f}")
-        
         # Detect spikes
         events = []
         last_spike_time = -self.min_spike_gap
@@ -228,7 +226,6 @@ class AudioTrigger:
                 priority=priority
             ))
         
-        print(f"  🔊 Detected {spikes_detected} audio spikes")
         return events
     
     def get_critical_timestamps(self, video_path: str) -> List[float]:
@@ -557,9 +554,6 @@ class BrightnessSpikeDetector:
             priority = FramePriority.CRITICAL
             self.frames_since_spike = 0
             self.detected_spikes.append(timestamp)
-            print(f"  ⚡ BRIGHTNESS SPIKE at {timestamp:.2f}s! "
-                  f"Delta: {brightness_delta:.1f} "
-                  f"({self.previous_brightness:.1f} → {current_brightness:.1f})")
         
         # Update state
         prev = self.previous_brightness

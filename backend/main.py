@@ -31,6 +31,8 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', category=UserWarning)
 # Suppress transformers logging
 logging.getLogger("transformers").setLevel(logging.ERROR)
+# Suppress uvicorn HTTP request logging
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 import cv2
 import numpy as np
@@ -696,13 +698,10 @@ class SemanticScout:
         self.priority_manager.set_audio_critical_timestamps(critical_timestamps)
         
         if critical_timestamps:
-            print(f"  🔊 Found {len(critical_timestamps)} audio-critical timestamps")
-        else:
-            print("  ℹ️ No audio spikes detected")
+            print(f"  🔊 {len(critical_timestamps)} audio moments detected")
         
         # Reset brightness detector for new video
         self.brightness_detector.reset()
-        print("  ⚡ Brightness spike detector ready (lightning/flash detection)")
         
         # =====================================================================
         # Video Processing
@@ -720,27 +719,21 @@ class SemanticScout:
         if video_duration <= 10:
             # Very short videos: Capture almost every second for maximum detail
             frame_skip = max(1, int(fps / 4))  # ~4 FPS for very short videos
-            print(f"  🎯 Very short video ({video_duration:.1f}s) - using MAX FPS (~4 fps, skip every {frame_skip} frames)")
         elif video_duration <= 30:
             # Short videos: High detail capture
             frame_skip = max(1, int(fps / 3))  # ~3 FPS for short videos
-            print(f"  ⚡ Short video ({video_duration:.1f}s) - using high FPS (~3 fps, skip every {frame_skip} frames)")
         elif video_duration <= 60:
             # Medium-short videos
             frame_skip = max(1, int(fps / 2.5))  # ~2.5 FPS
-            print(f"  📹 Medium video ({video_duration:.1f}s) - using medium-high FPS (~2.5 fps, skip every {frame_skip} frames)")
         elif video_duration <= 120:
             # Medium videos
             frame_skip = max(1, int(fps / 2))  # ~2 FPS for medium videos
-            print(f"  📹 Medium video ({video_duration:.1f}s) - using medium FPS (~2 fps, skip every {frame_skip} frames)")
         elif video_duration <= 300:
             # Long videos (up to 5 minutes)
             frame_skip = max(1, int(fps / 1.5))  # ~1.5 FPS
-            print(f"  🎬 Long video ({video_duration:.1f}s) - using reduced FPS (~1.5 fps, skip every {frame_skip} frames)")
         else:
             # Very long videos (5+ minutes)
             frame_skip = max(1, int(fps / 1))  # ~1 FPS for very long videos
-            print(f"  🎬 Very long video ({video_duration:.1f}s) - using standard FPS (~1 fps, skip every {frame_skip} frames)")
         
         surviving_frames = []
         prev_frame = None
@@ -796,7 +789,6 @@ class SemanticScout:
                 
                 audio_bypassed += 1
                 prev_frame = frame
-                print(f"  🔊 Frame at {timestamp:.2f}s BYPASSED (audio critical)")
                 continue
             
             # =====================================================================
@@ -820,7 +812,6 @@ class SemanticScout:
                 
                 prev_frame = frame
                 # Don't increment audio_bypassed, this is a different type
-                print(f"  ⚡ Frame at {timestamp:.2f}s BYPASSED (brightness spike - possible lightning!)")
                 continue
             
             # =====================================================================
@@ -882,14 +873,10 @@ class SemanticScout:
             })
             
             prev_frame = frame
-            print(f"  ✓ Frame at {timestamp:.2f}s passed filters")
         
         cap.release()
         
-        print(f"\n📊 Filtering complete: {len(surviving_frames)}/{total_frames} frames survived")
-        print(f"   🔊 Audio bypassed: {audio_bypassed}")
-        print(f"   📐 Physics (vertical): {physics_passed}")
-        print(f"   🎯 CLIP passed: {clip_passed}")
+        print(f"✅ Filtering complete: {len(surviving_frames)}/{total_frames} frames selected")
         
         return surviving_frames
 
@@ -1148,10 +1135,9 @@ Be concise but specific about ACTIONS and EVENTS."""
                 try:
                     result = future.result()
                     results.append(result)
-                    print(f"  ✓ Processed frame at {result['timestamp']:.2f}s")
                 except Exception as e:
                     frame = future_to_frame[future]
-                    print(f"  ❌ Failed to process frame at {frame['timestamp']:.2f}s: {e}")
+                    print(f"  ❌ Frame processing error: {e}")
         
         # Sort by timestamp
         results.sort(key=lambda x: x['timestamp'])
